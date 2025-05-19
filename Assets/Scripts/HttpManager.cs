@@ -1,0 +1,446 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using UnityEngine;
+using UnityEngine.Networking;
+using UnityEngine.Video;
+
+/// <summary>
+/// Manages HTTP requests, including GET, POST, PATCH, file uploads, and multimedia downloads.
+/// </summary>
+public static class HttpManager
+{
+    /// <summary>
+    /// A dummy audio clip used for testing purposes.
+    /// </summary>
+    public static AudioClip audioDummy;
+
+    /// <summary>
+    /// A dummy video asset used for testing purposes.
+    /// </summary>
+    public static string videoDummy;
+
+    /// <summary>
+    /// A dummy image texture used for testing purposes.
+    /// </summary>
+    public static Texture2D imageDummy;
+
+
+    /// <summary>
+    /// Sends a GET request to the specified URL and retrieves the response.
+    /// </summary>
+    /// <param name="url">The URL to which the request will be sent.</param>
+    /// <param name="callback">A callback function that receives the server's response as a string.</param>
+    public static void Get(string url, System.Action<string> callback)
+    {
+        CoroutineRunner.Start(GetRequest(URLdirectory.serverUrl + url, callback));
+    }
+
+    /// <summary>
+    /// Sends a POST request to the specified URL with JSON data.
+    /// </summary>
+    /// <param name="url">The URL to which the request will be sent.</param>
+    /// <param name="jsonData">The JSON-formatted data to be sent in the request body.</param>
+    /// <param name="callback">A callback function that receives the server's response.</param>
+    public static void Post(string url, string jsonData, System.Action<string> callback)
+    {
+        CoroutineRunner.Start(PostRequest(URLdirectory.serverUrl + url, jsonData, callback));
+    }
+
+    /// <summary>
+    /// Sends a PATCH request to the specified URL with JSON data.
+    /// </summary>
+    /// <param name="url">The URL to which the request will be sent.</param>
+    /// <param name="jsonData">The JSON-formatted data to be sent in the request body.</param>
+    /// <param name="callback">A callback function that receives the server's response.</param>
+    public static void Patch(string url, string jsonData, System.Action<string> callback)
+    {
+        CoroutineRunner.Start(PatchRequest(URLdirectory.serverUrl + url, jsonData, callback));
+    }
+
+    /// <summary>
+    /// Stores an dummy audio clip in a variable.
+    /// </summary>
+    /// <param name="audio">The AudioClip to store.</param>
+    public static void sendDummyAudio(AudioClip audio)
+    {
+        audioDummy = audio;
+    }
+
+    /// <summary>
+    /// Stores a dummy video path in a variable.
+    /// </summary>
+    /// <param name="video">The path of the video file to store.</param>
+    public static void sendDummyVideo(string video)
+    {
+        videoDummy = video;
+    }
+
+    /// <summary>
+    /// Stores an dummy image texture in a variable.
+    /// </summary>
+    /// <param name="image">The Texture2D to store.</param>
+    public static void sendDummyImage(Texture2D image)
+    {
+        imageDummy = image;
+    }
+
+    /// <summary>
+    /// Sends a file via a POST request to the specified URL.
+    /// </summary>
+    /// <param name="url">The URL to which the file will be uploaded.</param>
+    /// <param name="filePath">The local path of the file to upload.</param>
+    /// <param name="contentType">The MIME type of the file.</param>
+    /// <param name="callback">A callback function that receives the server's response.</param>
+    public static void PostFile(string url, string filePath, string contentType, System.Action<string> callback)
+    {
+        CoroutineRunner.Start(PostFileCoroutine(URLdirectory.serverUrl + url, filePath, contentType, callback));
+    }
+
+    /// <summary>
+    /// Downloads an image texture from the specified URL and saves it locally.
+    /// </summary>
+    /// <param name="url">The URL of the texture to download.</param>
+    /// <param name="fileName">The name under which the texture file will be saved.</param>
+    /// <param name="callback">A callback function that receives the downloaded Texture2D.</param>
+    public static void GetTexture(string url, string fileName, System.Action<Texture2D> callback)
+    {
+        CoroutineRunner.Start(GetTextureRequest(url, fileName, callback));
+    }
+
+    /// <summary>
+    /// Downloads a video from the specified URL and saves it as an MP4 file.
+    /// </summary>
+    /// <param name="url">The URL of the video file to download.</param>
+    /// <param name="fileName">The name under which the video file will be saved.</param>
+    /// <param name="callback">A callback function that receives the local file path of the saved video.</param>
+    public static void GetVideo(string url, string fileName, System.Action<string> callback)
+    {
+        CoroutineRunner.Start(GetVideoRequest(url, fileName, callback));
+    }
+
+    /// <summary>
+    /// Determines the appropriate audio type based on the file extension and starts the download request.
+    /// </summary>
+    /// <param name="url">The URL of the audio file to download.</param>
+    /// <param name="fileName">The name under which the audio file will be saved.</param>
+    /// <param name="callback">A callback function that receives the downloaded AudioClip.</param>
+    public static void GetAudio(string url, string fileName, System.Action<AudioClip> callback)
+    {
+        AudioType audioType = url.EndsWith(".wav") ? AudioType.WAV : AudioType.MPEG;
+        CoroutineRunner.Start(GetAudioRequest(url, fileName, callback, audioType));
+    }
+
+    private static Dictionary<string, string> customHeaders = new Dictionary<string, string>();
+
+    /// <summary>
+    /// Adds a custom header to the request. If the header already exists, its value is updated.
+    /// </summary>
+    /// <param name="key">The key (name) of the header.</param>
+    /// <param name="value">The value of the header.</param>
+    public static void AddRequestHeader(string key, string value)
+    {
+        if (!customHeaders.ContainsKey(key))
+        {
+            customHeaders.Add(key, value);
+        }
+        else
+        {
+            customHeaders[key] = value;
+        }
+    }
+
+    /// <summary>
+    /// Sends a PATCH request to the specified URL with JSON data.
+    /// </summary>
+    /// <param name="url">The URL to which the request will be sent.</param>
+    /// <param name="jsonData">The JSON-formatted data to be sent in the request body.</param>
+    /// <param name="callback">A callback function that receives the server's response.</param>
+    public static IEnumerator PatchRequest(string url, string jsonData, System.Action<string> callback)
+    {
+        UnityWebRequest request = new UnityWebRequest(url, "PATCH");
+        byte[] jsonToSend = System.Text.Encoding.UTF8.GetBytes(jsonData);
+        request.uploadHandler = new UploadHandlerRaw(jsonToSend);
+        request.downloadHandler = new DownloadHandlerBuffer();
+        request.SetRequestHeader("Content-Type", "application/json");
+
+        // Retrieve custom headers from HttpManager (assuming they are stored in a dictionary)
+        foreach (var header in customHeaders)
+        {
+            request.SetRequestHeader(header.Key, header.Value);
+        }
+
+        // Build the CURL command with custom headers
+        string curlCommand = $"curl -X PATCH \"{url}\" -H \"Content-Type: application/json\" -d '{jsonData}'";
+
+        foreach (var header in customHeaders)
+        {
+            curlCommand += $" -H \"{header.Key}: {header.Value}\"";
+        }
+
+        yield return request.SendWebRequest();
+        // Handle response
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            callback?.Invoke(request.downloadHandler.text);
+        }
+        else
+        {
+            Debug.LogError($"Error en PATCH: {request.error}");
+        }
+    }
+
+    /// <summary>
+    /// Sends a GET request to the specified URL and retrieves the response.
+    /// </summary>
+    /// <param name="url">The URL to which the request will be sent.</param>
+    /// <param name="callback">A callback function that receives the server's response as a string.</param>
+    private static IEnumerator GetRequest(string url, System.Action<string> callback)
+    {
+        using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
+        {
+            foreach (var header in customHeaders)
+            {
+                webRequest.SetRequestHeader(header.Key, header.Value);
+            }
+
+            string curlCommand = GenerateCurlCommand(url, customHeaders);
+            //Debug.Log($"Comando CURL: {curlCommand}");
+            yield return webRequest.SendWebRequest();
+
+            if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
+            {
+                Debug.LogError(url + " Error: " + webRequest.error);
+                callback?.Invoke(null);
+            }
+            else
+            {
+                callback?.Invoke(webRequest.downloadHandler.text);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Generates a CURL command for a GET request, including custom headers.
+    /// </summary>
+    /// <param name="url">The target URL for the request.</param>
+    /// <param name="headers">A dictionary containing custom headers to be included in the request.</param>
+    /// <returns>A string containing the formatted CURL command.</returns>
+    private static string GenerateCurlCommand(string url, Dictionary<string, string> headers)
+    {
+        string curl = $"curl -X GET \"{url}\"";
+
+        foreach (var header in headers)
+        {
+            curl += $" -H \"{header.Key}: {header.Value}\"";
+        }
+
+        return curl;
+    }
+
+    /// <summary>
+    /// Generates a CURL command for a POST request, including headers and optional JSON data.
+    /// </summary>
+    /// <param name="url">The target URL for the request.</param>
+    /// <param name="headers">A dictionary containing custom headers to be included in the request.</param>
+    /// <param name="jsonData">Optional JSON-formatted data to be sent in the request body.</param>
+    /// <returns>A string containing the formatted CURL command.</returns>
+    private static string GenerateCurlCommand(string url, Dictionary<string, string> headers, string jsonData = null)
+    {
+        string curlCommand = $"curl -X POST \"{url}\"";
+
+        foreach (var header in headers)
+        {
+            curlCommand += $" -H \"{header.Key}: {header.Value}\"";
+        }
+
+        if (!string.IsNullOrEmpty(jsonData))
+        {
+            curlCommand += $" -d '{jsonData}'";
+        }
+
+        return curlCommand;
+    }
+
+    /// <summary>
+    /// Sends a POST request to the specified URL with JSON data.
+    /// </summary>
+    /// <param name="url">The URL to which the request will be sent.</param>
+    /// <param name="jsonData">The JSON-formatted data to be sent in the request body.</param>
+    /// <param name="callback">A callback function that receives the server's response.</param>
+    private static IEnumerator PostRequest(string url, string jsonData, System.Action<string> callback)
+    {
+        using (UnityWebRequest webRequest = new UnityWebRequest(url, UnityWebRequest.kHttpVerbPOST))
+        {
+            // Convert JSON body to bytes and configure the UploadHandler
+            byte[] bodyRaw = new System.Text.UTF8Encoding().GetBytes(jsonData);
+            webRequest.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            webRequest.downloadHandler = new DownloadHandlerBuffer();
+
+            // Configure custom headers
+            foreach (var header in customHeaders)
+            {
+                webRequest.SetRequestHeader(header.Key, header.Value);
+            }
+
+            // Generate and log the CURL command for debugging
+            string curlCommand = GenerateCurlCommand(url, customHeaders, jsonData);
+
+            // Send the request
+            yield return webRequest.SendWebRequest();
+
+            // Handle the response
+            if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
+            {
+                callback?.Invoke(null);
+            }
+            else
+            {
+                callback?.Invoke(webRequest.downloadHandler.text);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Downloads an image texture from the specified URL and saves it as a PNG file.
+    /// </summary>
+    /// <param name="url">The URL of the texture to download.</param>
+    /// <param name="fileName">The name under which the texture file will be saved.</param>
+    /// <param name="callback">A callback function that receives the downloaded Texture2D.</param>
+    private static IEnumerator GetTextureRequest(string url, string fileName, System.Action<Texture2D> callback)
+    {
+        using (UnityWebRequest webRequest = UnityWebRequestTexture.GetTexture(url))
+        {
+            yield return webRequest.SendWebRequest();
+
+            if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
+            {
+                callback?.Invoke(null);
+            }
+            else
+            {
+                Texture2D texture = DownloadHandlerTexture.GetContent(webRequest);
+
+                // Save the texture as a PNG file
+                byte[] bytes = texture.EncodeToPNG();
+                string savePath = Path.Combine(Application.persistentDataPath, fileName + ".png");
+                File.WriteAllBytes(savePath, bytes);
+                callback?.Invoke(texture);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Downloads a video from the specified URL and saves it as an MP4 file.
+    /// </summary>
+    /// <param name="url">The URL of the video file to download.</param>
+    /// <param name="fileName">The name under which the video file will be saved.</param>
+    /// <param name="callback">A callback function that receives the local file path of the saved video.</param>
+    private static IEnumerator GetVideoRequest(string url, string fileName, System.Action<string> callback)
+    {
+        using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
+        {
+            yield return webRequest.SendWebRequest();
+
+            if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
+            {
+                Debug.LogError("Error: " + webRequest.error);
+                callback?.Invoke(null);
+            }
+            else
+            {
+                string videoPath = Path.Combine(Application.persistentDataPath, fileName + ".mp4");
+                File.WriteAllBytes(videoPath, webRequest.downloadHandler.data);
+                callback?.Invoke(videoPath);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Downloads an audio file from a given URL and saves it locally.
+    /// </summary>
+    /// <param name="url">The URL of the audio file to download.</param>
+    /// <param name="fileName">The name under which the audio file will be saved.</param>
+    /// <param name="callback">A callback function that receives the downloaded AudioClip.</param>
+    /// <param name="audioType">The type of audio format (default is MPEG).</param>
+    private static IEnumerator GetAudioRequest(string url, string fileName, System.Action<AudioClip> callback, AudioType audioType = AudioType.MPEG)
+    {
+        using (UnityWebRequest webRequest = UnityWebRequestMultimedia.GetAudioClip(url, audioType))
+        {
+            yield return webRequest.SendWebRequest();
+
+            if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
+            {
+                Debug.LogError("Error: " + webRequest.error + " : " + fileName);
+                callback?.Invoke(null);
+            }
+            else
+            {
+                AudioClip audioClip = DownloadHandlerAudioClip.GetContent(webRequest);
+
+                // Get the correct file extension based on the audio format
+                string extension = (audioType == AudioType.WAV) ? ".wav" : ".mp3";
+
+                // Save the file locally with the correct extension
+                byte[] audioBytes = webRequest.downloadHandler.data;
+                string savePath = Path.Combine(Application.persistentDataPath, fileName + extension);
+                File.WriteAllBytes(savePath, audioBytes);
+
+                //Debug.Log($"Audio saved at: {savePath}");
+                callback?.Invoke(audioClip);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Cooroutine to make a post of file to server.
+    /// </summary>
+    /// <param name="url">URL to set post call</param>
+    /// <param name="filePath">The path of file to set</param>
+    /// <param name="contentType">The type of file to send, on this occasion we used video/mp4</param>
+    /// <param name="callback">The callback that will be called when receiving a response from the server</param>
+    /// <returns></returns>
+    private static IEnumerator PostFileCoroutine(string url, string filePath, string contentType, System.Action<string> callback)
+    {
+        if (!File.Exists(filePath))
+        {
+            yield break;
+        }
+        HttpManager.ClearRequestHeaders();
+        HttpManager.AddRequestHeader("X-Machine-Key", GlobalVariables.machinesSecretKey);
+        // Read the file as bytes each time the request is sent
+        byte[] fileData = File.ReadAllBytes(filePath);
+
+        // Create a new form for each request
+        WWWForm form = new WWWForm();
+        form.AddBinaryData("file", fileData, Path.GetFileName(filePath), contentType);
+
+        // Create a new POST request for each attempt
+        UnityWebRequest webRequest = UnityWebRequest.Post(url, form);
+
+        // Configure custom headers
+        foreach (var header in customHeaders)
+        {
+            webRequest.SetRequestHeader(header.Key, header.Value);
+        }
+
+        yield return webRequest.SendWebRequest();
+
+        if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
+        {
+            callback?.Invoke(null);
+        }
+        else
+        {
+            callback?.Invoke(webRequest.downloadHandler.text);
+        }
+    }
+
+    /// <summary>
+    /// Clear custom headers.
+    /// </summary>
+    public static void ClearRequestHeaders()
+    {
+        customHeaders.Clear();
+    }
+}
