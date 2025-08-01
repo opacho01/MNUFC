@@ -253,6 +253,7 @@ public class GetAllResources : MonoBehaviour
         totalResources += loadingImg.Length;
         totalResources += teamPuppet1.Length;
         totalResources += teamPuppet2.Length;
+        totalResources += teamPuppetAll.Length;
         totalResources += teamPuppet3.Length;
         totalResources += audioPlayers.Length;
 
@@ -261,42 +262,37 @@ public class GetAllResources : MonoBehaviour
         ///////////////Global Assets
 
         string houseButtonUrl = themeData.step_0_global_settings.home_button_asset;
-        HttpManager.GetTexture(houseButtonUrl, "houseButton", (texture) => { SaveTexture(ref houseButton, texture, "houseButton"); });
-        //StartCoroutine(DescargarConReintentosYGuardar(houseButtonUrl, "houseButton", (downloadedTexture) => { SaveTexture(ref houseButton, downloadedTexture, "houseButton"); }));
+        HttpManager.GetTextureWithRetries(houseButtonUrl, "houseButton", (texture) => { SaveTexture(ref houseButton, texture, "houseButton"); });
 
         string footerBannerUrl = themeData.step_0_global_settings.footer_banner_asset;
-        HttpManager.GetTexture(footerBannerUrl, "footerBanner", (texture) => { SaveTexture(ref footerBanner, texture, "footerBanner"); });
-        //StartCoroutine(DescargarConReintentosYGuardar(footerBannerUrl, "footerBanner", (downloadedTexture) => { SaveTexture(ref footerBanner, downloadedTexture, "footerBanner"); }));
+        HttpManager.GetTextureWithRetries(footerBannerUrl, "footerBanner", (texture) => { SaveTexture(ref footerBanner, texture, "footerBanner"); });
 
         ///////////////Attract Video
 
         string appBackgroundUrl = themeData.step_1_attract_video.background_video_asset;
-        HttpManager.GetVideo(appBackgroundUrl, "appBackground", (path) => { SaveVideoPath(ref appBackground, path, "appBackground"); });
-        //StartCoroutine(DescargarConReintentosYGuardar(appBackgroundUrl, "appBackground", (downloadedTexture) => { SaveTexture(ref appBackground, downloadedTexture, "appBackground"); }));
+        HttpManager.GetVideoWithRetries(appBackgroundUrl, "appBackground", (path) => { SaveVideoPath(ref appBackground, path, "appBackground"); });
 
         string touchButtonUrl = themeData.step_1_attract_video.touch_button_asset;
-        HttpManager.GetTexture(touchButtonUrl, "touchButton", (texture) => { SaveTexture(ref touchButton, texture, "touchButton"); });
-        //StartCoroutine(DescargarConReintentosYGuardar(touchButtonUrl, "touchButton", (downloadedTexture) => { SaveTexture(ref touchButton, downloadedTexture, "touchButton"); }));
+        HttpManager.GetTextureWithRetries(touchButtonUrl, "touchButton", (texture) => { SaveTexture(ref touchButton, texture, "touchButton"); });
 
         string appLogoUrl = themeData.step_1_attract_video.logo_asset;
-        HttpManager.GetTexture(appLogoUrl, "appLogo", (texture) => { SaveTexture(ref appLogo, texture, "appLogo"); });
-        //StartCoroutine(DescargarConReintentosYGuardar(appLogoUrl, "appLogo", (downloadedTexture) => { SaveTexture(ref appLogo, downloadedTexture, "appLogo"); }));
+        HttpManager.GetTextureWithRetries(appLogoUrl, "appLogo", (texture) => { SaveTexture(ref appLogo, texture, "appLogo"); });
 
         string screenAudioP1Url = themeData.step_1_attract_video.screenAudioP1;
         extension = screenAudioP1Url.EndsWith(".wav") ? ".wav" : ".mp3";
-        HttpManager.GetAudio(screenAudioP1Url, "screenAudioP1" + extension, (audio) => { SaveAudioPath(ref screenAudioP1, audio, "screenAudioP1"); });
+        HttpManager.GetAudioWithRetries(screenAudioP1Url, "screenAudioP1" + extension, (audio) => { SaveAudioPath(ref screenAudioP1, audio, "screenAudioP1"); });
 
         ///////////////Select Video
 
         string backgroundP2Url = themeData.step_2_select_screen.background_video_asset;
-        HttpManager.GetVideo(backgroundP2Url, "backgroundP2", (path) => { SaveVideoPath(ref backgroundP2, path, "backgroundP2"); });
+        HttpManager.GetVideoWithRetries(backgroundP2Url, "backgroundP2", (path) => { SaveVideoPath(ref backgroundP2, path, "backgroundP2"); });
 
         for (byte i = 0; i < numCelebrations; i++)
         {
             byte index = i;
             videoPlayersPre[index] = themeData.step_2_select_screen.player_video_previews[i].video_preview_asset;
             string videoPreFileName = "videoPlayersPre" + index;
-            HttpManager.GetVideo(videoPlayersPre[index], videoPreFileName, (path) => { SaveVideoPath(ref videoPlayersPre[index], path, "videoPlayersPre-" + i); });
+            HttpManager.GetVideoWithRetries(videoPlayersPre[index], videoPreFileName, (path) => { SaveVideoPath(ref videoPlayersPre[index], path, "videoPlayersPre-" + index); });
         }
         
         for (byte i = 0; i < numCelebrations; i++)
@@ -304,131 +300,135 @@ public class GetAllResources : MonoBehaviour
             byte index = i;
             string audioPlayersURL = themeData.step_3_player_video_preview.player_videos[i].audio_asset;
             extension = audioPlayersURL.EndsWith(".wav") ? ".wav" : ".mp3";
-            HttpManager.GetAudio(audioPlayersURL, "audioPlayers-" + index + extension, (audio) =>
+            HttpManager.GetAudioWithRetries(audioPlayersURL, "audioPlayers-" + index + extension, (audio) =>
             {
-             
                 SaveAudioPath(ref audioPlayers[index], audio, "audioPlayers-" + index);
             });
         }
 
         string GuideBannerUrl = themeData.step_2_select_screen.guide_banner_asset;
-        //HttpManager.GetTexture(GuideBannerUrl, "GuideBanner", (texture) => { SaveTexture(ref GuideBanner, texture, "GuideBanner"); });
-        StartCoroutine(DescargarConReintentosYGuardar(GuideBannerUrl, "GuideBanner", (downloadedTexture) => { SaveTexture(ref GuideBanner, downloadedTexture, "GuideBanner"); }));
+        HttpManager.GetTextureWithRetries(GuideBannerUrl, "GuideBanner", (texture) => { SaveTexture(ref GuideBanner, texture, "GuideBanner"); });
 
         string screenAudioP2Url = themeData.step_2_select_screen.screenAudioP2;
         extension = screenAudioP2Url.EndsWith(".wav") ? ".wav" : ".mp3";
-        HttpManager.GetAudio(screenAudioP2Url, "screenAudioP2" + extension, (audio) => { SaveAudioPath(ref screenAudioP2, audio, "screenAudioP2"); });
+        HttpManager.GetAudioWithRetries(screenAudioP2Url, "screenAudioP2" + extension, (audio) => { SaveAudioPath(ref screenAudioP2, audio, "screenAudioP2"); });
         
         ///////////////Video Preview
         
         string backgroundP3Url = themeData.step_3_player_video_preview.background_video_asset;
-        HttpManager.GetVideo(backgroundP3Url, "backgroundP3", (path) => { SaveVideoPath(ref backgroundP3, path, "backgroundP3"); });
+        HttpManager.GetVideoWithRetries(backgroundP3Url, "backgroundP3", (path) => { SaveVideoPath(ref backgroundP3, path, "backgroundP3"); });
 
         for (byte i = 0; i < numCelebrations; i++)
         {
             byte index = i;
             videoPlayers[index] = themeData.step_3_player_video_preview.player_videos[i].video_asset;
             string videoFileName = "videoPlayers" + index;
-            HttpManager.GetVideo(videoPlayers[index], videoFileName, (path) => { SaveVideoPath(ref videoPlayers[index], path, "videoPlayers-" + i); });
+            HttpManager.GetVideoWithRetries(videoPlayers[index], videoFileName, (path) => { SaveVideoPath(ref videoPlayers[index], path, "videoPlayers-" + index); });
         }
 
         string screenAudioP3Url = themeData.step_3_player_video_preview.screenAudioP3;
         extension = screenAudioP3Url.EndsWith(".wav") ? ".wav" : ".mp3";
-        HttpManager.GetAudio(screenAudioP3Url, "screenAudioP3" + extension, (audio) => { SaveAudioPath(ref screenAudioP3, audio, "screenAudioP3"); });
+        HttpManager.GetAudioWithRetries(screenAudioP3Url, "screenAudioP3" + extension, (audio) => { SaveAudioPath(ref screenAudioP3, audio, "screenAudioP3"); });
 
         ///////////////Countdown
        
         string backgroundP4Url = themeData.step_4_countdown.background_video_asset;
-        HttpManager.GetVideo(backgroundP4Url, "backgroundP4", (path) => { SaveVideoPath(ref backgroundP4, path, "backgroundP4"); });
+        HttpManager.GetVideoWithRetries(backgroundP4Url, "backgroundP4", (path) => { SaveVideoPath(ref backgroundP4, path, "backgroundP4"); });
 
         string readyAudioUrl = themeData.step_4_countdown.readyAudio;
         extension = readyAudioUrl.EndsWith(".wav") ? ".wav" : ".mp3";
-        HttpManager.GetAudio(readyAudioUrl, "readyAudio" + extension, (audio) => { SaveAudioPath(ref readyAudio, audio, "readyAudio"); });
+        HttpManager.GetAudioWithRetries(readyAudioUrl, "readyAudio" + extension, (audio) => { SaveAudioPath(ref readyAudio, audio, "readyAudio"); });
        
         string setAudioUrl = themeData.step_4_countdown.setAudio;
         extension = setAudioUrl.EndsWith(".wav") ? ".wav" : ".mp3";
-        HttpManager.GetAudio(setAudioUrl, "setAudio" + extension, (audio) => { SaveAudioPath(ref setAudio, audio, "setAudio"); });
+        HttpManager.GetAudioWithRetries(setAudioUrl, "setAudio" + extension, (audio) => { SaveAudioPath(ref setAudio, audio, "setAudio"); });
        
         string flexAudioUrl = themeData.step_4_countdown.flexAudio;
         extension = flexAudioUrl.EndsWith(".wav") ? ".wav" : ".mp3";
-        HttpManager.GetAudio(flexAudioUrl, "flexAudio" + extension, (audio) => { SaveAudioPath(ref flexAudio, audio, "flexAudio"); });
+        HttpManager.GetAudioWithRetries(flexAudioUrl, "flexAudio" + extension, (audio) => { SaveAudioPath(ref flexAudio, audio, "flexAudio"); });
         
         ///////////////Video upload
         
         string backgroundP6Url = themeData.step_6_video_upload.background_video_asset;
-        HttpManager.GetVideo(backgroundP6Url, "backgroundP6", (path) => { SaveVideoPath(ref backgroundP6, path, "backgroundP6"); });
+        HttpManager.GetVideoWithRetries(backgroundP6Url, "backgroundP6", (path) => { SaveVideoPath(ref backgroundP6, path, "backgroundP6"); });
         
         for (byte i = 0; i < themeData.step_6_video_upload.loading_animation_asset.Length; i++)
         {
             int index = i;
             string loadingImgUrl = themeData.step_6_video_upload.loading_animation_asset[i];
-            HttpManager.GetTexture(loadingImgUrl, "loadingImg-" + index, (texture) =>
+            HttpManager.GetTextureWithRetries(loadingImgUrl, "loadingImg-" + index, (texture) =>
             {
                 SaveTexture(ref loadingImg[index], texture, "loadingImg-" + index);
             });
-            //StartCoroutine(DescargarConReintentosYGuardar(loadingImgUrl, "loadingImg-" + index, (downloadedTexture) => { SaveTexture(ref loadingImg[index], downloadedTexture, "loadingImg-" + index); }));
         }
         string screenAudioP6Url = themeData.step_6_video_upload.screenAudioP6;
         extension = screenAudioP6Url.EndsWith(".wav") ? ".wav" : ".mp3";
-        HttpManager.GetAudio(screenAudioP6Url, "screenAudioP6" + extension, (audio) => { SaveAudioPath(ref screenAudioP6, audio, "screenAudioP6"); });
+        HttpManager.GetAudioWithRetries(screenAudioP6Url, "screenAudioP6" + extension, (audio) => { SaveAudioPath(ref screenAudioP6, audio, "screenAudioP6"); });
         
         ///////////////Celebration
         string backgroundP7Url = themeData.step_7_celebration_screen.background_video_asset;
-        HttpManager.GetVideo(backgroundP7Url, "backgroundP7", (path) => { SaveVideoPath(ref backgroundP7, path, "backgroundP7"); });
+        HttpManager.GetVideoWithRetries(backgroundP7Url, "backgroundP7", (path) => { SaveVideoPath(ref backgroundP7, path, "backgroundP7"); });
         
         for (byte i = 0; i < themeData.step_7_celebration_screen.celebration_animation_asset.Length; i++)
         {
-           
             int index = i;
             string teamPuppet3Url = themeData.step_7_celebration_screen.celebration_animation_asset[index];
 
-            HttpManager.GetTexture(teamPuppet3Url, "teamPuppet3-" + index, (texture) =>
+            HttpManager.GetTextureWithRetries(teamPuppet3Url, "teamPuppet3-" + index, (texture) =>
             {
                 SaveTexture(ref teamPuppet3[index], texture, "teamPuppet3-" + index);
             });
-            //StartCoroutine(DescargarConReintentosYGuardar(teamPuppet3Url, "teamPuppet3-" + index, (downloadedTexture) => { SaveTexture(ref teamPuppet3[index], downloadedTexture, "teamPuppet3-" + index); }));
         }
         string screenAudioP7Url = themeData.step_7_celebration_screen.screenAudioP7;
         extension = screenAudioP7Url.EndsWith(".wav") ? ".wav" : ".mp3";
-        HttpManager.GetAudio(screenAudioP7Url, "screenAudioP7" + extension, (audio) => { SaveAudioPath(ref screenAudioP7, audio, "screenAudioP7"); });
+        HttpManager.GetAudioWithRetries(screenAudioP7Url, "screenAudioP7" + extension, (audio) => { SaveAudioPath(ref screenAudioP7, audio, "screenAudioP7"); });
         
         ///////////////Prize
         
         string backgroundP8Url = themeData.step_8_prize_screen.background_video_asset;
-        HttpManager.GetVideo(backgroundP8Url, "backgroundP8", (path) => { SaveVideoPath(ref backgroundP8, path, "backgroundP8"); });
+        HttpManager.GetVideoWithRetries(backgroundP8Url, "backgroundP8", (path) => { SaveVideoPath(ref backgroundP8, path, "backgroundP8"); });
       
         for (byte i = 0; i < themeData.step_8_prize_screen.reward_animation_asset1.Length; i++)
         {
                 int index = i;
                 string teamPuppet1Url = themeData.step_8_prize_screen.reward_animation_asset1[i];
-                HttpManager.GetTexture(teamPuppet1Url, "teamPuppet1-" + index, (texture) =>
+                HttpManager.GetTextureWithRetries(teamPuppet1Url, "teamPuppet1-" + index, (texture) =>
                 {
                     SaveTexture(ref teamPuppet1[index], texture, "teamPuppet1-" + index);
                 });
-            //StartCoroutine(DescargarConReintentosYGuardar(teamPuppet1Url, "teamPuppet1-" + index, (downloadedTexture) => { SaveTexture(ref teamPuppet1[index], downloadedTexture, "teamPuppet1-" + index); }));
         }
        
         for (byte i = 0; i < themeData.step_8_prize_screen.reward_animation_asset2.Length; i++)
         {
                 int index = i;
                 string teamPuppet2Url = themeData.step_8_prize_screen.reward_animation_asset2[i];
-                HttpManager.GetTexture(teamPuppet2Url, "teamPuppet2-" + index, (texture) =>
+                HttpManager.GetTextureWithRetries(teamPuppet2Url, "teamPuppet2-" + index, (texture) =>
                 {
                     SaveTexture(ref teamPuppet2[index], texture, "teamPuppet2-" + index);
                 });
-            //StartCoroutine(DescargarConReintentosYGuardar(teamPuppet2Url, "teamPuppet2-" + index, (downloadedTexture) => { SaveTexture(ref teamPuppet2[index], downloadedTexture, "teamPuppet2-" + index); }));
         }
+        
+        for (byte i = 0; i < themeData.step_8_prize_screen.reward_animation_asset.Length; i++)
+        {
+                int index = i;
+                string teamPuppetAllUrl = themeData.step_8_prize_screen.reward_animation_asset[i];
+                HttpManager.GetTextureWithRetries(teamPuppetAllUrl, "teamPuppetAll-" + index, (texture) =>
+                {
+                    SaveTexture(ref teamPuppetAll[index], texture, "teamPuppetAll-" + index);
+                });
+        }
+        
         string screenAudioP8Url = themeData.step_8_prize_screen.screenAudioP8;
         extension = screenAudioP8Url.EndsWith(".wav") ? ".wav" : ".mp3";
-        HttpManager.GetAudio(screenAudioP8Url, "screenAudioP8" + extension, (audio) => { SaveAudioPath(ref screenAudioP8, audio, "screenAudioP8"); });
+        HttpManager.GetAudioWithRetries(screenAudioP8Url, "screenAudioP8" + extension, (audio) => { SaveAudioPath(ref screenAudioP8, audio, "screenAudioP8"); });
         
         ///////////////QR Display
         string backgroundP9Url = themeData.step_9_qr_screen.background_video_asset;
-        HttpManager.GetVideo(backgroundP9Url, "backgroundP9", (path) => { SaveVideoPath(ref backgroundP9, path, "backgroundP9"); });
+        HttpManager.GetVideoWithRetries(backgroundP9Url, "backgroundP9", (path) => { SaveVideoPath(ref backgroundP9, path, "backgroundP9"); });
         
         string screenAudioP9Url = themeData.step_9_qr_screen.screenAudioP9;
         extension = screenAudioP9Url.EndsWith(".wav") ? ".wav" : ".mp3";
-        HttpManager.GetAudio(screenAudioP9Url, "screenAudioP9" + extension, (audio) => { SaveAudioPath(ref screenAudioP9, audio, "screenAudioP9"); });
+        HttpManager.GetAudioWithRetries(screenAudioP9Url, "screenAudioP9" + extension, (audio) => { SaveAudioPath(ref screenAudioP9, audio, "screenAudioP9"); });
     }
 
     /// <summary>
@@ -441,8 +441,9 @@ public class GetAllResources : MonoBehaviour
     {
         if (downloadedTexture == null)
         {
-            UnityEngine.Debug.LogError($"Could not download texture: {fileName}");
-            
+            UnityEngine.Debug.LogError($"Could not download texture: {fileName} - Continuing without this resource");
+            // Set a default/fallback texture if needed
+            // textureVar = defaultTexture; // Uncomment if you have a default texture
         }
         else
         {
@@ -451,60 +452,14 @@ public class GetAllResources : MonoBehaviour
             string savePath = Path.Combine(Application.persistentDataPath, fileName + ".png");
             File.WriteAllBytes(savePath, bytes);
         }
+        
+        // Always increment counter regardless of success/failure to maintain progress
         downloadedResources++;//Increase the downloaded resources counter
         downoloadingText.text = downloadedResources + " / " + totalResources;
         CheckAllResourcesDownloaded();
     }
 
-    private IEnumerator DescargarConReintentosYGuardar(string url, string fileName, System.Action<Texture2D> onTextureReady)
-    {
-        Texture2D tempTexture = null;
 
-        yield return StartCoroutine(DownloadTextureWithRetries(url, fileName, (downloadedTexture) =>
-        {
-            tempTexture = downloadedTexture;
-        }));
-
-        // Llamamos la acción con la textura descargada
-        onTextureReady?.Invoke(tempTexture);
-    }
-
-    private IEnumerator DownloadTextureWithRetries(string url, string fileName, System.Action<Texture2D> onDownloaded, int maxRetries = 5, float retryDelay = 0.02f)
-    {
-        int attempt = 0;
-        Texture2D downloadedTexture = null;
-
-        while (attempt < maxRetries)
-        {
-            UnityEngine.Debug.Log("Intento " + attempt + " para descargar " + fileName);
-            bool completed = false;
-
-            HttpManager.GetTexture(url, fileName, (texture) =>
-            {
-                downloadedTexture = texture;
-                completed = true;
-            });
-
-            // Espera hasta que la descarga se complete
-            yield return new WaitUntil(() => completed);
-
-            if (downloadedTexture != null)
-            {
-                onDownloaded(downloadedTexture);
-                downloadedResources++;//Increase the downloaded resources counter
-                downoloadingText.text = downloadedResources + " / " + totalResources;
-                CheckAllResourcesDownloaded();
-                yield break;
-            }
-
-            attempt++;
-            UnityEngine.Debug.LogWarning($"Intento {attempt} fallido para {fileName}. Reintentando en {retryDelay} segundos...");
-            yield return new WaitForSeconds(retryDelay);
-        }
-        
-        UnityEngine.Debug.LogError($"No se pudo descargar la textura después de {maxRetries} intentos: {fileName}");
-        onDownloaded(null); // Llama con null si falló definitivamente
-    }
 
 
     /// <summary>
@@ -518,10 +473,14 @@ public class GetAllResources : MonoBehaviour
         if (!string.IsNullOrEmpty(path))
         {
             targetPath = path; 
-        } else 
-        { 
-            UnityEngine.Debug.LogError("Failed to download video."); 
         } 
+        else 
+        { 
+            UnityEngine.Debug.LogError($"Failed to download video: {fileName} - Continuing without this resource"); 
+            // Leave targetPath as is (empty/null) - the application should handle missing videos gracefully
+        } 
+        
+        // Always increment counter regardless of success/failure to maintain progress
         downloadedResources++;//Increase the downloaded resources counter
         downoloadingText.text = downloadedResources + " / " + totalResources; 
         CheckAllResourcesDownloaded();
@@ -537,10 +496,15 @@ public class GetAllResources : MonoBehaviour
     {
         if (downloadedClip == null)
         {
-            return;
+            UnityEngine.Debug.LogError($"Failed to download audio: {fileName} - Continuing without this resource");
+            // Leave clipVar as is (null) - the application should handle missing audio gracefully
+        }
+        else
+        {
+            clipVar = downloadedClip;
         }
 
-        clipVar = downloadedClip;
+        // Always increment counter regardless of success/failure to maintain progress
         downloadedResources++;//Increase the downloaded resources counter
         downoloadingText.text = downloadedResources + " / " + totalResources;
         CheckAllResourcesDownloaded();
@@ -746,6 +710,11 @@ public class GetAllResources : MonoBehaviour
                 themeData.step_8_prize_screen.reward_animation_asset2 = new string[1];
                 themeData.step_8_prize_screen.reward_animation_asset2[0] = "https://1000marcas.net/wp-content/uploads/2020/01/Juventus-logo.png";
             }
+            if (themeData.step_8_prize_screen.reward_animation_asset?.Length == 0)
+            {
+                themeData.step_8_prize_screen.reward_animation_asset = new string[1];
+                themeData.step_8_prize_screen.reward_animation_asset[0] = "https://1000marcas.net/wp-content/uploads/2020/01/Juventus-logo.png";
+            }
         }
         catch (Exception e)
         {
@@ -764,6 +733,9 @@ public class GetAllResources : MonoBehaviour
 
             themeData.step_8_prize_screen.reward_animation_asset2 = new string[1];
             themeData.step_8_prize_screen.reward_animation_asset2[0] = "https://1000marcas.net/wp-content/uploads/2020/01/Juventus-logo.png";
+
+            themeData.step_8_prize_screen.reward_animation_asset = new string[1];
+            themeData.step_8_prize_screen.reward_animation_asset[0] = "https://1000marcas.net/wp-content/uploads/2020/01/Juventus-logo.png";
         }
         DownloadAssets();
     }

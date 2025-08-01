@@ -402,4 +402,190 @@ public static class HttpManager
     {
         customHeaders.Clear();
     }
+
+    // RETRY METHODS WITH EXPONENTIAL BACKOFF
+
+    /// <summary>
+    /// Downloads a texture with retry logic and exponential backoff.
+    /// </summary>
+    /// <param name="url">The URL of the texture to download.</param>
+    /// <param name="fileName">The name under which the texture file will be saved.</param>
+    /// <param name="callback">A callback function that receives the downloaded Texture2D.</param>
+    /// <param name="maxRetries">Maximum number of retry attempts (default: 3).</param>
+    /// <param name="baseDelaySeconds">Base delay for exponential backoff (default: 1 second).</param>
+    public static void GetTextureWithRetries(string url, string fileName, System.Action<Texture2D> callback, int maxRetries = 3, float baseDelaySeconds = 1f)
+    {
+        CoroutineRunner.Start(GetTextureWithRetriesCoroutine(url, fileName, callback, maxRetries, baseDelaySeconds));
+    }
+
+    /// <summary>
+    /// Downloads a video with retry logic and exponential backoff.
+    /// </summary>
+    /// <param name="url">The URL of the video to download.</param>
+    /// <param name="fileName">The name under which the video file will be saved.</param>
+    /// <param name="callback">A callback function that receives the local file path of the saved video.</param>
+    /// <param name="maxRetries">Maximum number of retry attempts (default: 3).</param>
+    /// <param name="baseDelaySeconds">Base delay for exponential backoff (default: 1 second).</param>
+    public static void GetVideoWithRetries(string url, string fileName, System.Action<string> callback, int maxRetries = 3, float baseDelaySeconds = 1f)
+    {
+        CoroutineRunner.Start(GetVideoWithRetriesCoroutine(url, fileName, callback, maxRetries, baseDelaySeconds));
+    }
+
+    /// <summary>
+    /// Downloads an audio file with retry logic and exponential backoff.
+    /// </summary>
+    /// <param name="url">The URL of the audio file to download.</param>
+    /// <param name="fileName">The name under which the audio file will be saved.</param>
+    /// <param name="callback">A callback function that receives the downloaded AudioClip.</param>
+    /// <param name="maxRetries">Maximum number of retry attempts (default: 3).</param>
+    /// <param name="baseDelaySeconds">Base delay for exponential backoff (default: 1 second).</param>
+    public static void GetAudioWithRetries(string url, string fileName, System.Action<AudioClip> callback, int maxRetries = 3, float baseDelaySeconds = 1f)
+    {
+        AudioType audioType = url.EndsWith(".wav") ? AudioType.WAV : AudioType.MPEG;
+        CoroutineRunner.Start(GetAudioWithRetriesCoroutine(url, fileName, callback, audioType, maxRetries, baseDelaySeconds));
+    }
+
+    /// <summary>
+    /// Coroutine that downloads a texture with retry logic and exponential backoff.
+    /// </summary>
+    private static IEnumerator GetTextureWithRetriesCoroutine(string url, string fileName, System.Action<Texture2D> callback, int maxRetries, float baseDelaySeconds)
+    {
+        int attempt = 0;
+        
+        while (attempt < maxRetries)
+        {
+            Debug.Log($"Downloading texture attempt {attempt + 1}/{maxRetries}: {fileName}");
+            
+            bool completed = false;
+            Texture2D result = null;
+            
+            // Start the download
+            CoroutineRunner.Start(GetTextureRequest(url, fileName, (texture) => {
+                result = texture;
+                completed = true;
+            }));
+            
+            // Wait for completion
+            yield return new WaitUntil(() => completed);
+            
+            // Check if successful
+            if (result != null)
+            {
+                Debug.Log($"Successfully downloaded texture: {fileName}");
+                callback?.Invoke(result);
+                yield break;
+            }
+            
+            attempt++;
+            
+            // If this was the last attempt, fail
+            if (attempt >= maxRetries)
+            {
+                Debug.LogError($"Failed to download texture after {maxRetries} attempts: {fileName}");
+                callback?.Invoke(null);
+                yield break;
+            }
+            
+            // Calculate exponential backoff delay
+            float delay = baseDelaySeconds * Mathf.Pow(2, attempt - 1);
+            Debug.LogWarning($"Texture download failed, retrying in {delay:F1} seconds: {fileName}");
+            yield return new WaitForSeconds(delay);
+        }
+    }
+
+    /// <summary>
+    /// Coroutine that downloads a video with retry logic and exponential backoff.
+    /// </summary>
+    private static IEnumerator GetVideoWithRetriesCoroutine(string url, string fileName, System.Action<string> callback, int maxRetries, float baseDelaySeconds)
+    {
+        int attempt = 0;
+        
+        while (attempt < maxRetries)
+        {
+            Debug.Log($"Downloading video attempt {attempt + 1}/{maxRetries}: {fileName}");
+            
+            bool completed = false;
+            string result = null;
+            
+            // Start the download
+            CoroutineRunner.Start(GetVideoRequest(url, fileName, (path) => {
+                result = path;
+                completed = true;
+            }));
+            
+            // Wait for completion
+            yield return new WaitUntil(() => completed);
+            
+            // Check if successful
+            if (!string.IsNullOrEmpty(result))
+            {
+                Debug.Log($"Successfully downloaded video: {fileName}");
+                callback?.Invoke(result);
+                yield break;
+            }
+            
+            attempt++;
+            
+            // If this was the last attempt, fail
+            if (attempt >= maxRetries)
+            {
+                Debug.LogError($"Failed to download video after {maxRetries} attempts: {fileName}");
+                callback?.Invoke(null);
+                yield break;
+            }
+            
+            // Calculate exponential backoff delay
+            float delay = baseDelaySeconds * Mathf.Pow(2, attempt - 1);
+            Debug.LogWarning($"Video download failed, retrying in {delay:F1} seconds: {fileName}");
+            yield return new WaitForSeconds(delay);
+        }
+    }
+
+    /// <summary>
+    /// Coroutine that downloads an audio file with retry logic and exponential backoff.
+    /// </summary>
+    private static IEnumerator GetAudioWithRetriesCoroutine(string url, string fileName, System.Action<AudioClip> callback, AudioType audioType, int maxRetries, float baseDelaySeconds)
+    {
+        int attempt = 0;
+        
+        while (attempt < maxRetries)
+        {
+            Debug.Log($"Downloading audio attempt {attempt + 1}/{maxRetries}: {fileName}");
+            
+            bool completed = false;
+            AudioClip result = null;
+            
+            // Start the download
+            CoroutineRunner.Start(GetAudioRequest(url, fileName, (audio) => {
+                result = audio;
+                completed = true;
+            }, audioType));
+            
+            // Wait for completion
+            yield return new WaitUntil(() => completed);
+            
+            // Check if successful
+            if (result != null)
+            {
+                Debug.Log($"Successfully downloaded audio: {fileName}");
+                callback?.Invoke(result);
+                yield break;
+            }
+            
+            attempt++;
+            
+            // If this was the last attempt, fail
+            if (attempt >= maxRetries)
+            {
+                Debug.LogError($"Failed to download audio after {maxRetries} attempts: {fileName}");
+                callback?.Invoke(null);
+                yield break;
+            }
+            
+            // Calculate exponential backoff delay
+            float delay = baseDelaySeconds * Mathf.Pow(2, attempt - 1);
+            Debug.LogWarning($"Audio download failed, retrying in {delay:F1} seconds: {fileName}");
+            yield return new WaitForSeconds(delay);
+        }
+    }
 }
