@@ -10,21 +10,6 @@ using UnityEngine.Video;
 /// </summary>
 public static class HttpManager
 {
-    /// <summary>
-    /// A dummy audio clip used for testing purposes.
-    /// </summary>
-    public static AudioClip audioDummy;
-
-    /// <summary>
-    /// A dummy video asset used for testing purposes.
-    /// </summary>
-    public static string videoDummy;
-
-    /// <summary>
-    /// A dummy image texture used for testing purposes.
-    /// </summary>
-    public static Texture2D imageDummy;
-
 
     /// <summary>
     /// Sends a GET request to the specified URL and retrieves the response.
@@ -58,32 +43,6 @@ public static class HttpManager
         CoroutineRunner.Start(PatchRequest(URLdirectory.serverUrl + url, jsonData, callback));
     }
 
-    /// <summary>
-    /// Stores an dummy audio clip in a variable.
-    /// </summary>
-    /// <param name="audio">The AudioClip to store.</param>
-    public static void sendDummyAudio(AudioClip audio)
-    {
-        audioDummy = audio;
-    }
-
-    /// <summary>
-    /// Stores a dummy video path in a variable.
-    /// </summary>
-    /// <param name="video">The path of the video file to store.</param>
-    public static void sendDummyVideo(string video)
-    {
-        videoDummy = video;
-    }
-
-    /// <summary>
-    /// Stores an dummy image texture in a variable.
-    /// </summary>
-    /// <param name="image">The Texture2D to store.</param>
-    public static void sendDummyImage(Texture2D image)
-    {
-        imageDummy = image;
-    }
 
     /// <summary>
     /// Sends a file via a POST request to the specified URL.

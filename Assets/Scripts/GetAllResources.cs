@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Diagnostics;
 using System.IO;
 using TMPro;
@@ -211,27 +212,6 @@ public class GetAllResources : MonoBehaviour
     /// </summary>
     public Slider downloadBar;
 
-    //Dummys for test
-    /// <summary>
-    /// Flag indicating whether to use dummy test data.
-    /// </summary>
-    public bool meteDummys;
-
-    /// <summary>
-    /// Dummy audio clip used for testing.
-    /// </summary>
-    public AudioClip audioDummy;
-
-    /// <summary>
-    /// Dummy texture used for testing.
-    /// </summary>
-    public Texture2D imageDummy;
-
-    /// <summary>
-    /// Dummy video file used for testing.
-    /// </summary>
-    public string videoDummy;
-
     /// <summary>
     /// Text field displaying the download progress status.
     /// </summary>
@@ -277,28 +257,30 @@ public class GetAllResources : MonoBehaviour
         totalResources += audioPlayers.Length;
 
         downloadBar.maxValue = totalResources;
-        HttpManager.sendDummyAudio(audioDummy);
-        HttpManager.sendDummyVideo(videoDummy);
-        HttpManager.sendDummyImage(imageDummy);
 
         ///////////////Global Assets
 
         string houseButtonUrl = themeData.step_0_global_settings.home_button_asset;
         HttpManager.GetTexture(houseButtonUrl, "houseButton", (texture) => { SaveTexture(ref houseButton, texture, "houseButton"); });
-            
+        //StartCoroutine(DescargarConReintentosYGuardar(houseButtonUrl, "houseButton", (downloadedTexture) => { SaveTexture(ref houseButton, downloadedTexture, "houseButton"); }));
+
         string footerBannerUrl = themeData.step_0_global_settings.footer_banner_asset;
         HttpManager.GetTexture(footerBannerUrl, "footerBanner", (texture) => { SaveTexture(ref footerBanner, texture, "footerBanner"); });
-       
+        //StartCoroutine(DescargarConReintentosYGuardar(footerBannerUrl, "footerBanner", (downloadedTexture) => { SaveTexture(ref footerBanner, downloadedTexture, "footerBanner"); }));
+
         ///////////////Attract Video
-        
+
         string appBackgroundUrl = themeData.step_1_attract_video.background_video_asset;
         HttpManager.GetVideo(appBackgroundUrl, "appBackground", (path) => { SaveVideoPath(ref appBackground, path, "appBackground"); });
-        
+        //StartCoroutine(DescargarConReintentosYGuardar(appBackgroundUrl, "appBackground", (downloadedTexture) => { SaveTexture(ref appBackground, downloadedTexture, "appBackground"); }));
+
         string touchButtonUrl = themeData.step_1_attract_video.touch_button_asset;
         HttpManager.GetTexture(touchButtonUrl, "touchButton", (texture) => { SaveTexture(ref touchButton, texture, "touchButton"); });
-        
+        //StartCoroutine(DescargarConReintentosYGuardar(touchButtonUrl, "touchButton", (downloadedTexture) => { SaveTexture(ref touchButton, downloadedTexture, "touchButton"); }));
+
         string appLogoUrl = themeData.step_1_attract_video.logo_asset;
         HttpManager.GetTexture(appLogoUrl, "appLogo", (texture) => { SaveTexture(ref appLogo, texture, "appLogo"); });
+        //StartCoroutine(DescargarConReintentosYGuardar(appLogoUrl, "appLogo", (downloadedTexture) => { SaveTexture(ref appLogo, downloadedTexture, "appLogo"); }));
 
         string screenAudioP1Url = themeData.step_1_attract_video.screenAudioP1;
         extension = screenAudioP1Url.EndsWith(".wav") ? ".wav" : ".mp3";
@@ -330,8 +312,9 @@ public class GetAllResources : MonoBehaviour
         }
 
         string GuideBannerUrl = themeData.step_2_select_screen.guide_banner_asset;
-        HttpManager.GetTexture(GuideBannerUrl, "GuideBanner", (texture) => { SaveTexture(ref GuideBanner, texture, "GuideBanner"); });
-        
+        //HttpManager.GetTexture(GuideBannerUrl, "GuideBanner", (texture) => { SaveTexture(ref GuideBanner, texture, "GuideBanner"); });
+        StartCoroutine(DescargarConReintentosYGuardar(GuideBannerUrl, "GuideBanner", (downloadedTexture) => { SaveTexture(ref GuideBanner, downloadedTexture, "GuideBanner"); }));
+
         string screenAudioP2Url = themeData.step_2_select_screen.screenAudioP2;
         extension = screenAudioP2Url.EndsWith(".wav") ? ".wav" : ".mp3";
         HttpManager.GetAudio(screenAudioP2Url, "screenAudioP2" + extension, (audio) => { SaveAudioPath(ref screenAudioP2, audio, "screenAudioP2"); });
@@ -383,6 +366,7 @@ public class GetAllResources : MonoBehaviour
             {
                 SaveTexture(ref loadingImg[index], texture, "loadingImg-" + index);
             });
+            //StartCoroutine(DescargarConReintentosYGuardar(loadingImgUrl, "loadingImg-" + index, (downloadedTexture) => { SaveTexture(ref loadingImg[index], downloadedTexture, "loadingImg-" + index); }));
         }
         string screenAudioP6Url = themeData.step_6_video_upload.screenAudioP6;
         extension = screenAudioP6Url.EndsWith(".wav") ? ".wav" : ".mp3";
@@ -402,6 +386,7 @@ public class GetAllResources : MonoBehaviour
             {
                 SaveTexture(ref teamPuppet3[index], texture, "teamPuppet3-" + index);
             });
+            //StartCoroutine(DescargarConReintentosYGuardar(teamPuppet3Url, "teamPuppet3-" + index, (downloadedTexture) => { SaveTexture(ref teamPuppet3[index], downloadedTexture, "teamPuppet3-" + index); }));
         }
         string screenAudioP7Url = themeData.step_7_celebration_screen.screenAudioP7;
         extension = screenAudioP7Url.EndsWith(".wav") ? ".wav" : ".mp3";
@@ -420,6 +405,7 @@ public class GetAllResources : MonoBehaviour
                 {
                     SaveTexture(ref teamPuppet1[index], texture, "teamPuppet1-" + index);
                 });
+            //StartCoroutine(DescargarConReintentosYGuardar(teamPuppet1Url, "teamPuppet1-" + index, (downloadedTexture) => { SaveTexture(ref teamPuppet1[index], downloadedTexture, "teamPuppet1-" + index); }));
         }
        
         for (byte i = 0; i < themeData.step_8_prize_screen.reward_animation_asset2.Length; i++)
@@ -430,6 +416,7 @@ public class GetAllResources : MonoBehaviour
                 {
                     SaveTexture(ref teamPuppet2[index], texture, "teamPuppet2-" + index);
                 });
+            //StartCoroutine(DescargarConReintentosYGuardar(teamPuppet2Url, "teamPuppet2-" + index, (downloadedTexture) => { SaveTexture(ref teamPuppet2[index], downloadedTexture, "teamPuppet2-" + index); }));
         }
         string screenAudioP8Url = themeData.step_8_prize_screen.screenAudioP8;
         extension = screenAudioP8Url.EndsWith(".wav") ? ".wav" : ".mp3";
@@ -455,10 +442,7 @@ public class GetAllResources : MonoBehaviour
         if (downloadedTexture == null)
         {
             UnityEngine.Debug.LogError($"Could not download texture: {fileName}");
-            if (meteDummys)
-            {
-                textureVar = imageDummy;
-            }
+            
         }
         else
         {
@@ -472,6 +456,57 @@ public class GetAllResources : MonoBehaviour
         CheckAllResourcesDownloaded();
     }
 
+    private IEnumerator DescargarConReintentosYGuardar(string url, string fileName, System.Action<Texture2D> onTextureReady)
+    {
+        Texture2D tempTexture = null;
+
+        yield return StartCoroutine(DownloadTextureWithRetries(url, fileName, (downloadedTexture) =>
+        {
+            tempTexture = downloadedTexture;
+        }));
+
+        // Llamamos la acción con la textura descargada
+        onTextureReady?.Invoke(tempTexture);
+    }
+
+    private IEnumerator DownloadTextureWithRetries(string url, string fileName, System.Action<Texture2D> onDownloaded, int maxRetries = 5, float retryDelay = 0.02f)
+    {
+        int attempt = 0;
+        Texture2D downloadedTexture = null;
+
+        while (attempt < maxRetries)
+        {
+            UnityEngine.Debug.Log("Intento " + attempt + " para descargar " + fileName);
+            bool completed = false;
+
+            HttpManager.GetTexture(url, fileName, (texture) =>
+            {
+                downloadedTexture = texture;
+                completed = true;
+            });
+
+            // Espera hasta que la descarga se complete
+            yield return new WaitUntil(() => completed);
+
+            if (downloadedTexture != null)
+            {
+                onDownloaded(downloadedTexture);
+                downloadedResources++;//Increase the downloaded resources counter
+                downoloadingText.text = downloadedResources + " / " + totalResources;
+                CheckAllResourcesDownloaded();
+                yield break;
+            }
+
+            attempt++;
+            UnityEngine.Debug.LogWarning($"Intento {attempt} fallido para {fileName}. Reintentando en {retryDelay} segundos...");
+            yield return new WaitForSeconds(retryDelay);
+        }
+        
+        UnityEngine.Debug.LogError($"No se pudo descargar la textura después de {maxRetries} intentos: {fileName}");
+        onDownloaded(null); // Llama con null si falló definitivamente
+    }
+
+
     /// <summary>
     /// Save to machine the video whit the given name.
     /// </summary>
@@ -484,10 +519,7 @@ public class GetAllResources : MonoBehaviour
         {
             targetPath = path; 
         } else 
-        { if (meteDummys) 
-            { 
-                targetPath = videoDummy; 
-            }
+        { 
             UnityEngine.Debug.LogError("Failed to download video."); 
         } 
         downloadedResources++;//Increase the downloaded resources counter
@@ -505,10 +537,6 @@ public class GetAllResources : MonoBehaviour
     {
         if (downloadedClip == null)
         {
-            if (meteDummys)
-            {
-                downloadedClip = audioDummy;
-            }
             return;
         }
 
