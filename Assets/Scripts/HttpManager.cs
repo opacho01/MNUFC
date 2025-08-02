@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.Video;
@@ -146,6 +147,7 @@ public static class HttpManager
         else
         {
             Debug.LogError($"Error en PATCH: {request.error}");
+            ErrorText.text += $"Error en PATCH: {request.error}\n";
         }
     }
 
@@ -170,6 +172,7 @@ public static class HttpManager
             if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
             {
                 Debug.LogError(url + " Error: " + webRequest.error);
+                ErrorText.text += url + " Error: " + webRequest.error+"\n";
                 callback?.Invoke(null);
             }
             else
@@ -274,6 +277,7 @@ public static class HttpManager
 
             if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
             {
+                ErrorText.text += "Error: " + fileName + "\n";
                 callback?.Invoke(null);
             }
             else
@@ -304,6 +308,7 @@ public static class HttpManager
             if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
             {
                 Debug.LogError("Error: " + webRequest.error);
+                ErrorText.text += "Error: " + webRequest.error + fileName +"\n";
                 callback?.Invoke(null);
             }
             else
@@ -331,6 +336,7 @@ public static class HttpManager
             if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
             {
                 Debug.LogError("Error: " + webRequest.error + " : " + fileName);
+                ErrorText.text += "Error: " + webRequest.error + fileName + "\n";
                 callback?.Invoke(null);
             }
             else
@@ -455,7 +461,7 @@ public static class HttpManager
         while (attempt < maxRetries)
         {
             Debug.Log($"Downloading texture attempt {attempt + 1}/{maxRetries}: {fileName}");
-            
+            DisplayText.text = $"Downloading texture attempt {attempt + 1}/{maxRetries}: {fileName}";
             bool completed = false;
             Texture2D result = null;
             
@@ -471,7 +477,8 @@ public static class HttpManager
             // Check if successful
             if (result != null)
             {
-                Debug.Log($"Successfully downloaded texture: {fileName}");
+                //Debug.Log($"Successfully downloaded texture: {fileName}");
+                DisplayText.text = $"Successfully downloaded texture: {fileName}";
                 callback?.Invoke(result);
                 yield break;
             }
@@ -482,6 +489,7 @@ public static class HttpManager
             if (attempt >= maxRetries)
             {
                 Debug.LogError($"Failed to download texture after {maxRetries} attempts: {fileName}");
+                ErrorText.text += $"Failed to download texture after {maxRetries} attempts: {fileName}" + "\n";
                 callback?.Invoke(null);
                 yield break;
             }
@@ -499,7 +507,7 @@ public static class HttpManager
     private static IEnumerator GetVideoWithRetriesCoroutine(string url, string fileName, System.Action<string> callback, int maxRetries, float baseDelaySeconds)
     {
         int attempt = 0;
-        
+        Debug.Log("Intentando bajar video attempt " + fileName);
         while (attempt < maxRetries)
         {
             Debug.Log($"Downloading video attempt {attempt + 1}/{maxRetries}: {fileName}");
@@ -519,7 +527,8 @@ public static class HttpManager
             // Check if successful
             if (!string.IsNullOrEmpty(result))
             {
-                Debug.Log($"Successfully downloaded video: {fileName}");
+                //Debug.Log($"Successfully downloaded video: {fileName}");
+                DisplayText.text = $"Successfully downloaded video: {fileName}";
                 callback?.Invoke(result);
                 yield break;
             }
@@ -530,6 +539,7 @@ public static class HttpManager
             if (attempt >= maxRetries)
             {
                 Debug.LogError($"Failed to download video after {maxRetries} attempts: {fileName}");
+                ErrorText.text += $"Failed to download video after {maxRetries} attempts: {fileName}" + "\n";
                 callback?.Invoke(null);
                 yield break;
             }
@@ -550,8 +560,8 @@ public static class HttpManager
         
         while (attempt < maxRetries)
         {
-            Debug.Log($"Downloading audio attempt {attempt + 1}/{maxRetries}: {fileName}");
-            
+            //Debug.Log($"Downloading audio attempt {attempt + 1}/{maxRetries}: {fileName}");
+            DisplayText.text = $"Downloading audio attempt {attempt + 1}/{maxRetries}: {fileName}";
             bool completed = false;
             AudioClip result = null;
             
@@ -567,7 +577,8 @@ public static class HttpManager
             // Check if successful
             if (result != null)
             {
-                Debug.Log($"Successfully downloaded audio: {fileName}");
+                //Debug.Log($"Successfully downloaded audio: {fileName}");
+                DisplayText.text = $"Successfully downloaded audio: {fileName}";
                 callback?.Invoke(result);
                 yield break;
             }
@@ -578,6 +589,7 @@ public static class HttpManager
             if (attempt >= maxRetries)
             {
                 Debug.LogError($"Failed to download audio after {maxRetries} attempts: {fileName}");
+                ErrorText.text += $"Failed to download audio after {maxRetries} attempts: {fileName}" + "\n";
                 callback?.Invoke(null);
                 yield break;
             }
@@ -587,5 +599,13 @@ public static class HttpManager
             Debug.LogWarning($"Audio download failed, retrying in {delay:F1} seconds: {fileName}");
             yield return new WaitForSeconds(delay);
         }
+    }
+
+    private static TMP_Text DisplayText;
+    private static TMP_Text ErrorText;
+    public static void UpdateDisplay(TMP_Text targetText, TMP_Text erText)
+    {
+        DisplayText = targetText;
+        ErrorText = erText;
     }
 }

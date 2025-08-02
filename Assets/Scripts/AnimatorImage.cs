@@ -116,13 +116,51 @@ public class AnimatorImage : MonoBehaviour
     /// <param name="delay">The delay between each frame change.</param>
     IEnumerator PlayLoop(float delay)
     {
+        if (textures == null || textures.Length == 0)
+        {
+            Debug.LogWarning($"AnimatorImage: No textures to animate for animation {nombre}. Stopping PlayLoop.");
+            yield break; // Sale de la coroutine si no hay texturas
+        }
+
         while (true)
         {
             yield return new WaitForSeconds(delay);
-            if (textures.Length > 1)
+
+            if (textures.Length > 0) // Asegúrate de que el arreglo no esté vacío después de la primera verificación
             {
-                frameCounter = (++frameCounter) % textures.Length;//cycle the index.
-                goMaterial.sprite = textures[frameCounter];//assign the sprites
+                int originalFrameCounter = frameCounter; // Guarda el contador original para detectar bucles infinitos de nulls
+                int attempts = 0; // Contador de intentos para evitar bucles infinitos si todo el array es null
+
+                do
+                {
+                    frameCounter = (frameCounter + 1) % textures.Length; // Cicla el índice
+                    attempts++;
+
+                    // Si hemos intentado todos los elementos y no encontramos uno no nulo, salimos para evitar bucle infinito.
+                    if (attempts > textures.Length)
+                    {
+                        Debug.LogError($"AnimatorImage: All frames in animation {nombre} are null or could not find a valid sprite. Stopping animation.");
+                        goMaterial.sprite = null; // Opcional: limpia el sprite si no hay nada que mostrar
+                        yield break;
+                    }
+                }
+                while (textures[frameCounter] == null); // Repite mientras el sprite actual sea null
+
+                // Si encontramos un sprite no nulo, lo asignamos
+                if (goMaterial != null)
+                {
+                    goMaterial.sprite = textures[frameCounter]; // Asigna el sprite
+                }
+                else
+                {
+                    Debug.LogWarning("AnimatorImage: goMaterial (Image component) is null. Cannot assign sprite.");
+                    yield break; // Si no hay donde mostrarlo, sal de la coroutine.
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"AnimatorImage: Textures array became empty during animation for {nombre}. Stopping PlayLoop.");
+                yield break; // Si el arreglo se vacía por alguna razón, detén la coroutine.
             }
         }
     }

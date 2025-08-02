@@ -14,6 +14,12 @@ public class AuxButtons : MonoBehaviour
         SceneManager.LoadScene(0);
     }
 
+    public void resetSceneDownload()
+    {
+        PlayerPrefs.SetInt("Reset", 1);
+        SceneManager.LoadScene(0);
+    }
+
     /// <summary>
     /// Exits the application.
     /// </summary>

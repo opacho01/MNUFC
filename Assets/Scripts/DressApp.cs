@@ -219,12 +219,12 @@ public class DressApp : MonoBehaviour
             // Step 11: Initial wait
             currentStep++;
             Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Processing - Wait 1) - {(currentStep * 100f / totalSteps):F1}%");
-            yield return new WaitForSeconds(2);
+            //yield return new WaitForSeconds(2);
             
             // Step 12: Secondary wait
             currentStep++;
             Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Processing - Wait 2) - {(currentStep * 100f / totalSteps):F1}%");
-            yield return new WaitForSeconds(1.0f);
+            //yield return new WaitForSeconds(1.0f);
             
             // Step 13: Set panel1 video prepared
             currentStep++;
@@ -273,6 +273,7 @@ public class DressApp : MonoBehaviour
             Debug.LogException(generalException);
             Debug.Log("[DressApp] ⚠️ Asset preparation process interrupted due to critical error.");
         }
+        yield return null;
     }
 
     /// <summary>
