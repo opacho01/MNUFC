@@ -98,7 +98,7 @@ public class Panel3Content : PanelContent
         celebration.color = GlobalVariables.colorPrimary;
         GlobalVariables.ActualScreen = 3;
         audios.clip = allResources.screenAudioP3;
-        audios.volume = 0.8f;
+        //audios.volume = 0.08f;
         audios.Play();
         audios.PlayOneShot(allResources.audioPlayers[numPlayer]);
         antPanelObj.gameObject.SetActive(false);
