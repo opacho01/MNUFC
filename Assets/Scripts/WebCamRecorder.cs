@@ -117,6 +117,7 @@ public class WebCamRecorder : MonoBehaviour
         Resolution currentResolution = Screen.currentResolution;
         string arg = $"{currentResolution.width}x{currentResolution.height}";
         string videoFileName = $"output_{timestamp}.mp4";
+        GetComponent<VideoUpload>().filepathAux = videoFileName;
         string path = videoFileName;
         string text = Path.Combine(outputFolderPath, path);
         //Set the parameter of webcam, framerate, compression, quality and name to save.
@@ -157,6 +158,8 @@ public class WebCamRecorder : MonoBehaviour
         {
             string path = $"output_{timestamp}.mp4";
             string text = Path.Combine(outputFolderPath, path);
+            UnityEngine.Debug.Log("Recording stopped and video saved successfully at: " + text);
+            
             if (File.Exists(text))
             {
                 if (!Application.isEditor)
@@ -164,7 +167,13 @@ public class WebCamRecorder : MonoBehaviour
                     UnityEngine.Debug.Log("Recording stopped and video saved successfully at: " + text);
                 }
                 Cursor.visible = true;
-                GetComponent<VideoUpload>().UploadToServer(text);
+                if (!GlobalVariables.offline)
+                {
+                    GetComponent<VideoUpload>().UploadToServer(text);
+                } else
+                {
+                    GetComponent<VideoUpload>().DontVideoUploaded();
+                }
                 webCamTexture?.Stop();
                 StopCoroutine(RecordVideo());
             }

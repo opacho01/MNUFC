@@ -225,13 +225,94 @@ public class GetAllResources : MonoBehaviour
 
     bool Dummys = true;
 
+    // Agregar variable offline
+    /// <summary>
+    /// Indicates if the application should run in offline mode using cached data.
+    /// </summary>
+    public bool offline = false;
+
     /// <summary>
     /// The first function to be executed calls GetMachineData(); when the application starts.
     /// </summary>
     void Start()
     {
         initError.gameObject.SetActive(false);
-        GetMachineData();
+        GlobalVariables.offline = offline;
+        // Verificar si hay datos guardados localmente
+        if (CheckForOfflineData())
+        {
+            offline = true;
+            Debug.Log("Modo offline activado - usando datos guardados localmente");
+            LoadOfflineMachineData();
+        }
+        else
+        {
+            offline = false;
+            Debug.Log("Modo online - obteniendo datos del servidor");
+            GetMachineData();
+        }
+    }
+
+    /// <summary>
+    /// Check if there is machine data saved locally for offline mode.
+    /// </summary>
+    /// <returns>True if offline data exists</returns>
+    private bool CheckForOfflineData()
+    {
+        string machineDataPath = Path.Combine(Application.persistentDataPath, "machineData.json");
+        return File.Exists(machineDataPath);
+    }
+
+    /// <summary>
+    /// Load machine data from local storage for offline mode.
+    /// </summary>
+    private void LoadOfflineMachineData()
+    {
+        string machineDataPath = Path.Combine(Application.persistentDataPath, "machineData.json");
+
+        try
+        {
+            if (File.Exists(machineDataPath))
+            {
+                string savedData = File.ReadAllText(machineDataPath);
+                GlobalVariables.machineData = JsonUtility.FromJson<MachineData>(savedData);
+                themeData = GlobalVariables.machineData.theme;
+                URLdirectory.theme_id = themeData._id;
+
+                Debug.Log("Datos de máquina cargados desde almacenamiento local");
+                DownloadAssets(); // Proceder a cargar los recursos offline
+            }
+            else
+            {
+                Debug.LogError("No se encontraron datos offline guardados");
+                initError.gameObject.SetActive(true);
+                initError.text = "No hay datos offline disponibles. Conéctese a internet para descargar los datos.";
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Error cargando datos offline: " + e.Message);
+            initError.gameObject.SetActive(true);
+            initError.text = "Error cargando datos offline: " + e.Message;
+        }
+    }
+
+    /// <summary>
+    /// Save machine data to local storage for offline use.
+    /// </summary>
+    /// <param name="machineDataJson">JSON string of machine data</param>
+    private void SaveMachineDataForOffline(string machineDataJson)
+    {
+        try
+        {
+            string machineDataPath = Path.Combine(Application.persistentDataPath, "machineData.json");
+            File.WriteAllText(machineDataPath, machineDataJson);
+            Debug.Log("Datos de máquina guardados para uso offline");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Error guardando datos offline: " + e.Message);
+        }
     }
 
     /// <summary>
@@ -1145,16 +1226,53 @@ public class GetAllResources : MonoBehaviour
     private void MachineDataComplete(string response)
     {
         UnityEngine.Debug.Log("--------------------------------\n" + response + "\n----------------------------------");
+
+        // Guardar los datos para uso offline
+        if (!offline)
+        {
+            SaveMachineDataForOffline(response);
+        }
+
         GlobalVariables.machineData = JsonUtility.FromJson<MachineData>(response);
         if (GlobalVariables.machineData.event_id == null)
         {
             initError.gameObject.SetActive(true);
             initError.text = "The event_id variable is not assigned, please check the event in the CMS.";
+
+            // Intentar cargar datos offline si hay error
+            if (CheckForOfflineData())
+            {
+                Debug.Log("Intentando cargar datos offline debido a error...");
+                offline = true;
+                LoadOfflineMachineData();
+                return;
+            }
         }
+
         themeData = GlobalVariables.machineData.theme;
         URLdirectory.theme_id = themeData._id;
-        
+
         GetTheme();
+    }
+
+    public void SetOfflineMode(bool isOffline)
+    {
+        offline = isOffline;
+        PlayerPrefs.SetInt("OfflineMode", isOffline ? 1 : 0);
+
+        if (isOffline)
+        {
+            Debug.Log("Modo offline activado manualmente");
+            if (CheckForOfflineData())
+            {
+                LoadOfflineMachineData();
+            }
+        }
+        else
+        {
+            Debug.Log("Modo online activado - recargando datos del servidor");
+            GetMachineData();
+        }
     }
 
     public void ForceInit()

@@ -105,9 +105,17 @@ public class Panel6Content : PanelContent
     + "}";
 
         //Debug.Log("------" + jsonBody);
-        HttpManager.AddRequestHeader("X-Machine-Key", GlobalVariables.machinesSecretKey);
-        HttpManager.AddRequestHeader("Content-Type", "application/json");
-        HttpManager.Post(uploadUrl, jsonBody, HandlePostResponse);
+        if (GlobalVariables.offline)
+        {
+            HandlePostResponse("{\"start_time\":\"2025-10-09T20:06:13.882000\",\"end_time\":\"2025-10-10T02:06:35\",\"total_game_time\":1.0,\"total_screen_time\":1.0,\"date\":\"2025-10-10T02:06:35\",\"machine_id\":\"6884f98a78ea05f217e24b73\",\"event_id\":\"68c08cc6aa5a1fc56fdf684b\",\"total_clicks\":0,\"s3_video_url\":\"https://fandomprizemachine.com/?eventId=68c08cc6aa5a1fc56fdf684b&url=https://vendingmachine-assets-archive.s3.us-east-1.amazonaws.com/uploads/20251010_012215_\",\"public_web_url\":\"https://app.myvendingmachine.com/game/77980a15-4684-4b7c-b61d-9a990cc8eaa3\",\"is_highlight\":false,\"share_allowance\":false,\"prize\":{\"slot_id\":\"s1\",\"name\":\"r0c1\",\"showName\":\"MNUFC T-Shirt\",\"price\":0.0,\"rewardName\":\"Reward Name\",\"probabilityWeight\":25.0,\"inStock\":true,\"quantity\":84},\"final_url\":\"https://fandomprizemachine.com/?eventId=68c08cc6aa5a1fc56fdf684b&url=https://fandomprizemachine.com/?eventId=68c08cc6aa5a1fc56fdf684b&url=https://vendingmachine-assets-archive.s3.us-east-1.amazonaws.com/uploads/20251010_012215_\",\"_id\":\"68e86a1907146812d88cd88a\"}"
+);
+        }
+        else
+        {
+            HttpManager.AddRequestHeader("X-Machine-Key", GlobalVariables.machinesSecretKey);
+            HttpManager.AddRequestHeader("Content-Type", "application/json");
+            HttpManager.Post(uploadUrl, jsonBody, HandlePostResponse);
+        }
     }
 
     /// <summary>
@@ -125,6 +133,7 @@ public class Panel6Content : PanelContent
     /// <param name="response"></param>
     void HandlePostResponse(string response)
     {
+        Debug.Log(response);
         if (!string.IsNullOrEmpty(response))
         {
             InfoPrize infoPrize = JsonUtility.FromJson<InfoPrize>(response);
