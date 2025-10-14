@@ -21,7 +21,7 @@ public class VideoUpload : MonoBehaviour
     /// <summary>
     /// Auxiliary file path used for temporary storage or processing.
     /// </summary>
-    private string filepathAux = "";
+    public string filepathAux = "";
 
     /// <summary>
     /// The number of attempts made for a specific operation.
@@ -92,10 +92,21 @@ public class VideoUpload : MonoBehaviour
                 StartCoroutine(PostVideo(filepathAux));
             } else
             {
-                videoUp = new VideoUploadResponse();
-                videoUp.s3_url = filepathAux;
-                panelContent.nextPanel();
+                DontVideoUploaded();
             }
         }
+    }
+
+
+    public void DontVideoUploaded()
+    {
+        videoUp = new VideoUploadResponse();
+        videoUp.s3_url = "https://fandomprizemachine.com/?eventId=68c08cc6aa5a1fc56fdf684b&url=https://vendingmachine-assets-archive.s3.us-east-1.amazonaws.com/uploads/20251010_012215_" + filepathAux;
+        videoUp.message = "Video no subido después de múltiples intentos";
+        videoUp.file_key = "local_fallback";
+        videoUp.asset_id = "fallback_asset";
+
+        GlobalVariables.videoUpload = videoUp;
+        panelContent.nextPanel();
     }
 }

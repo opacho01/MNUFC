@@ -111,4 +111,9 @@ public static class GlobalVariables
     /// Indicates whether a permission or setting has changed.
     /// </summary>
     public static bool allowedChanged = false;
+
+    /// <summary>
+    /// Indicates when the vending machine is running in offline mode.
+    /// </summary>
+    public static bool offline = false;
 }
