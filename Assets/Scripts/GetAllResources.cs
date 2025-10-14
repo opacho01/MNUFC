@@ -225,29 +225,23 @@ public class GetAllResources : MonoBehaviour
 
     bool Dummys = true;
 
-    // Agregar variable offline
-    /// <summary>
-    /// Indicates if the application should run in offline mode using cached data.
-    /// </summary>
-    public bool offline = false;
-
     /// <summary>
     /// The first function to be executed calls GetMachineData(); when the application starts.
     /// </summary>
     void Start()
     {
         initError.gameObject.SetActive(false);
-        GlobalVariables.offline = offline;
+        Debug.Log("GetAllResources " + GlobalVariables.offline);
         // Verificar si hay datos guardados localmente
-        if (CheckForOfflineData())
+        if (GlobalVariables.offline)
         {
-            offline = true;
+            //offline = true;
             Debug.Log("Modo offline activado - usando datos guardados localmente");
             LoadOfflineMachineData();
         }
         else
         {
-            offline = false;
+            //offline = false;
             Debug.Log("Modo online - obteniendo datos del servidor");
             GetMachineData();
         }
@@ -1228,7 +1222,7 @@ public class GetAllResources : MonoBehaviour
         UnityEngine.Debug.Log("--------------------------------\n" + response + "\n----------------------------------");
 
         // Guardar los datos para uso offline
-        if (!offline)
+        if (!GlobalVariables.offline)
         {
             SaveMachineDataForOffline(response);
         }
@@ -1243,7 +1237,7 @@ public class GetAllResources : MonoBehaviour
             if (CheckForOfflineData())
             {
                 Debug.Log("Intentando cargar datos offline debido a error...");
-                offline = true;
+                GlobalVariables.offline = true;
                 LoadOfflineMachineData();
                 return;
             }
@@ -1257,7 +1251,7 @@ public class GetAllResources : MonoBehaviour
 
     public void SetOfflineMode(bool isOffline)
     {
-        offline = isOffline;
+        GlobalVariables.offline = isOffline;
         PlayerPrefs.SetInt("OfflineMode", isOffline ? 1 : 0);
 
         if (isOffline)
