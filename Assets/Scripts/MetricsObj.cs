@@ -38,6 +38,16 @@ public class MetricsObj
     public string event_id;
 
     /// <summary>
+    /// Upload mode indicating if the data was sent online or offline (optional)
+    /// </summary>
+    public string upload_mode;
+
+    /// <summary>
+    /// Unique reference ID for offline games (optional)
+    /// </summary>
+    public string offline_reference_id;
+
+    /// <summary>
     /// Contains step-by-step tracking data for the event.
     /// </summary>
     public StepsWrapper steps;

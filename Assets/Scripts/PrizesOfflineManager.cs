@@ -49,6 +49,11 @@ public class PrizeManager : MonoBehaviour
 
     void OnEnable()
     {
+        InitializeComplete();
+    }
+
+    public void InitializeComplete()
+    {
         InitializeOfflinePrizes();
         InitializePrizeObjects();
         SetupButtonListeners();
@@ -300,7 +305,7 @@ public class PrizeManager : MonoBehaviour
     /// <summary>
     /// Loads prize names from PlayerPrefs
     /// </summary>
-    private void LoadPrizeNames()
+    public void LoadPrizeNames()
     {
         prizeNames.Clear();
 

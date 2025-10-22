@@ -60,6 +60,7 @@ public class WebCamRecorder : MonoBehaviour
             UnityEngine.Debug.LogError("No available cameras were detected.");
         }
         timestamp = System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+        GlobalVariables.videoName = Base62DateConverter.ConvertDateToBase62(timestamp);
         panelContent.nextPanelObj.gameObject.SetActive(true);
         StartCoroutine(RecordVideo());
     }
@@ -97,7 +98,7 @@ public class WebCamRecorder : MonoBehaviour
     {
         webCamTexture.Play();
         ffmpegPath = Path.Combine(Application.streamingAssetsPath, "ffmpeg.exe");
-        string PathName = $"output_{timestamp}";
+        string PathName = GlobalVariables.videoName;
         outputFolderPath = Path.Combine(Application.persistentDataPath, PathName);//Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "VideoFolder");
         if (!Directory.Exists(outputFolderPath))
         {
@@ -116,7 +117,7 @@ public class WebCamRecorder : MonoBehaviour
         Cursor.visible = true;
         Resolution currentResolution = Screen.currentResolution;
         string arg = $"{currentResolution.width}x{currentResolution.height}";
-        string videoFileName = $"output_{timestamp}.mp4";
+        string videoFileName = GlobalVariables.videoName + ".mp4";
         GetComponent<VideoUpload>().filepathAux = videoFileName;
         string path = videoFileName;
         string text = Path.Combine(outputFolderPath, path);
@@ -156,8 +157,10 @@ public class WebCamRecorder : MonoBehaviour
         ffmpegProcess.WaitForExit();
         if (ffmpegProcess.ExitCode == 0)
         {
-            string path = $"output_{timestamp}.mp4";
+            //GlobalVariables.videoName = Base62DateConverter.ConvertDateToBase62(timestamp);//"output_" + timestamp;
+            string path = GlobalVariables.videoName + ".mp4";
             string text = Path.Combine(outputFolderPath, path);
+            
             UnityEngine.Debug.Log("Recording stopped and video saved successfully at: " + text);
             
             if (File.Exists(text))

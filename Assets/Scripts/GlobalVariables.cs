@@ -116,4 +116,9 @@ public static class GlobalVariables
     /// Indicates when the vending machine is running in offline mode.
     /// </summary>
     public static bool offline = false;
+
+    /// <summary>
+    /// Identifies the name of video in the interaction.
+    /// </summary>
+    public static string videoName = "";
 }

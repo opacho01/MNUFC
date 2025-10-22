@@ -225,6 +225,8 @@ public class GetAllResources : MonoBehaviour
 
     bool Dummys = true;
 
+    public PrizeManager prizeManager;
+
     /// <summary>
     /// The first function to be executed calls GetMachineData(); when the application starts.
     /// </summary>
@@ -232,6 +234,7 @@ public class GetAllResources : MonoBehaviour
     {
         initError.gameObject.SetActive(false);
         Debug.Log("GetAllResources " + GlobalVariables.offline);
+        prizeManager.InitializeComplete();
         // Verificar si hay datos guardados localmente
         if (GlobalVariables.offline)
         {

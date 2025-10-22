@@ -106,8 +106,32 @@ public class Panel6Content : PanelContent
 
                     // Usar el premio seleccionado...
                 }
-            
-                string jsonBodyOffline =
+            Debug.Log("\"start_time\": \"" + GlobalVariables.metricsObj.time_start + "\",\n");
+        Debug.Log("\"end_time\": \"" + DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:sszzz") + "\",\n");
+            Debug.Log("\"total_game_time\": " + 1 + ",\n");
+            Debug.Log("\"total_screen_time\": " + 1 + ",\n");
+            Debug.Log("\"date\": \"" + DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:sszzz") + "\",\n");
+            Debug.Log("\"event_id\": \"" + GlobalVariables.machineData.event_id + "\",\n");
+            Debug.Log("\"machine_id\": \"" + GlobalVariables.machineData._id + "\",\n");
+            Debug.Log("\"total_clicks\": " + 0 + ",\n");
+            Debug.Log("\"s3_video_url\": \"" + GlobalVariables.videoUpload.s3_url + "\",\n");
+
+            Debug.Log("\"public_web_url\": " + "\"https://app.myvendingmachine.com/game/77980a15-4684-4b7c-b61d-9a990cc8eaa3" + "\",\n");
+            Debug.Log("\"is_highlight\":false," + "\n");
+            Debug.Log("\"share_allowance\":false," + "\n");
+            Debug.Log("\"prize\":{");
+            Debug.Log("\"slot_id\": \"" + selectedPrize.slot_id + "\",\n");
+            Debug.Log("\"name\":\"r0c1\",");
+            Debug.Log("\"showName\": \"" + selectedPrize.showName + "\",\n");
+            Debug.Log("\"price\":0.0,");
+            Debug.Log("\"rewardName\":\"Reward Name\",");
+            Debug.Log("\"probabilityWeight\": " + selectedPrize.probabilityWeight + ",\n");
+            Debug.Log("\"inStock\": " + selectedPrize.inStock.ToString().ToLower() + ",\n");
+            Debug.Log("\"quantity\": " + selectedPrize.quantity + "},\n");
+            Debug.Log("\"final_url\":" + "\"https://fandomprizemachine.com/?eventId=68c08cc6aa5a1fc56fdf684b&url=https://fandomprizemachine.com/?eventId=68c08cc6aa5a1fc56fdf684b&url=https://vendingmachine-assets-archive.s3.us-east-1.amazonaws.com/uploads/20251010_012215_" + "\",\n");
+            Debug.Log("\"_id\":\"68e86a1907146812d88cd88a" + "\"\n");
+            Debug.Log("}");
+            string jsonBodyOffline =
        "{\n"
        + "\"start_time\": \"" + GlobalVariables.metricsObj.time_start + "\",\n"
        + "\"end_time\": \"" + DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:sszzz") + "\",\n"
