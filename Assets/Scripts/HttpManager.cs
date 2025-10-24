@@ -380,6 +380,16 @@ public static class HttpManager
         WWWForm form = new WWWForm();
         form.AddBinaryData("file", fileData, Path.GetFileName(filePath), contentType);
 
+        // Add offline_reference_id as form field
+        if (GlobalVariables.offline)
+        {
+            form.AddField("offline_reference_id", GlobalVariables.videoName);
+            form.AddField("mode","offline");
+        }
+
+        // Print CURL command for debugging
+        PrintCurlCommand(url, filePath, contentType);
+
         // Create a new POST request for each attempt
         UnityWebRequest webRequest = UnityWebRequest.Post(url, form);
 
@@ -398,6 +408,57 @@ public static class HttpManager
         else
         {
             callback?.Invoke(webRequest.downloadHandler.text);
+        }
+    }
+
+    /// <summary>
+    /// Prints a CURL command equivalent for debugging purposes
+    /// </summary>
+    private static void PrintCurlCommand(string url, string filePath, string contentType)
+    {
+        try
+        {
+            string fileName = Path.GetFileName(filePath);
+            string curlCommand = $"curl -X POST \\\n";
+
+            // Add headers
+            curlCommand += $"  -H \"X-Machine-Key: {GlobalVariables.machinesSecretKey}\" \\\n";
+            curlCommand += $"  -H \"Content-Type: multipart/form-data\" \\\n";
+
+            // Add custom headers
+            foreach (var header in customHeaders)
+            {
+                curlCommand += $"  -H \"{header.Key}: {header.Value}\" \\\n";
+            }
+
+            // Add form fields
+            curlCommand += $"  -F \"file=@\\\"{filePath}\\\";type={contentType}\" \\\n";
+
+            // Add offline_reference_id if available
+            if (GlobalVariables.offline)
+            {
+                curlCommand += $"  -F \"offline_reference_id={GlobalVariables.videoName}\" \\\n";
+                curlCommand += $"  -F \"mode=offline\" \\\n";
+            }
+
+            // Add URL (remove the last backslash and space)
+            curlCommand = curlCommand.TrimEnd('\\', '\n', ' ') + $" \\\n  \"{url}\"";
+
+            Debug.Log("CURL Command:\n" + curlCommand);
+
+            // Also print a simplified version for easier copying
+            string simplifiedCurl = $"curl -X POST -H \"X-Machine-Key: {GlobalVariables.machinesSecretKey}\" -H \"Content-Type: multipart/form-data\" -F \"file=@{filePath}\"";
+            if (!string.IsNullOrEmpty(GlobalVariables.videoName))
+            {
+                simplifiedCurl += $" -F \"offline_reference_id={GlobalVariables.videoName}\"";
+            }
+            simplifiedCurl += $" \"{url}\"";
+
+            Debug.Log("Simplified CURL: " + simplifiedCurl);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"Failed to generate CURL command: {e.Message}");
         }
     }
 

@@ -60,7 +60,7 @@ public class WebCamRecorder : MonoBehaviour
             UnityEngine.Debug.LogError("No available cameras were detected.");
         }
         timestamp = System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-        GlobalVariables.videoName = Base62DateConverter.ConvertDateToBase62(timestamp);
+        GlobalVariables.videoName = Base62DateConverter.ConvertDateToBase36(timestamp);
         panelContent.nextPanelObj.gameObject.SetActive(true);
         StartCoroutine(RecordVideo());
     }
@@ -197,7 +197,21 @@ public class WebCamRecorder : MonoBehaviour
     /// <param name="path">The path form video to delete</param>
     public void DeleteVideoFile(string path)
     {
-        string text = Path.Combine(outputFolderPath, path);
+        string text = "";
+        if (GlobalVariables.offline)
+        {
+
+            string PathName = GlobalVariables.videoName;
+            outputFolderPath = Path.Combine(Application.persistentDataPath, PathName);
+            text = Path.Combine(outputFolderPath, path);
+            UnityEngine.Debug.Log("Offline " + text);
+            UnityEngine.Debug.Log(outputFolderPath);
+            UnityEngine.Debug.Log(PathName);
+        }
+        else {
+            text = Path.Combine(outputFolderPath, path);
+            UnityEngine.Debug.Log("Online " + text);
+        }
         if (File.Exists(text))
         {
             try

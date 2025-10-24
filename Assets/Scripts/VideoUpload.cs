@@ -35,6 +35,7 @@ public class VideoUpload : MonoBehaviour
     /// <param name="path">Path of the video to upload to server</param>
     public void UploadToServer(string path)
     {
+        Debug.Log("Uploading video to server: " + path);
         StartCoroutine(PostVideo(path));
         attemps = 0;
     }
@@ -77,6 +78,7 @@ public class VideoUpload : MonoBehaviour
     /// <param name="response"></param>
     void HandleResponse(string response)
     {
+        Debug.Log("-----------" + response);
         if (!string.IsNullOrEmpty(response))
         {
             videoUp = JsonUtility.FromJson<VideoUploadResponse>(response);

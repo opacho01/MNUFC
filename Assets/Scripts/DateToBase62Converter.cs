@@ -2,30 +2,33 @@ using System;
 using System.Text;
 
 /// <summary>
-/// Converts date-time values to and from Base62 encoded strings for compact representation.
+/// Converts date-time values to and from Base36 encoded strings for compact representation.
 /// Handles date format: YYYY-MM-DD_HH-MM-SS
+/// Uses only numbers (0-9) and uppercase letters (A-Z)
+/// Always returns exactly 6 characters
 /// </summary>
 public static class Base62DateConverter
 {
-    private const string BASE62_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    private const string BASE36_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    private const int OUTPUT_LENGTH = 6;
 
     /// <summary>
-    /// Converts a date string in format "YYYY-MM-DD_HH-MM-SS" to a Base62 encoded string
+    /// Converts a date string in format "YYYY-MM-DD_HH-MM-SS" to a Base36 encoded string
     /// </summary>
     /// <param name="dateString">Date string in format YYYY-MM-DD_HH-MM-SS</param>
-    /// <returns>Base62 encoded string representation of the date</returns>
+    /// <returns>Base36 encoded string representation of the date (always 6 characters)</returns>
     /// <exception cref="ArgumentException">Thrown when input format is invalid</exception>
     /// <example>
-    /// string base62Code = Base62DateConverter.ConvertDateToBase62("2025-10-21_12-46-57");
-    /// Returns: "1tX8vF" (approximately 6 characters)
+    /// string base36Code = Base36DateConverter.ConvertDateToBase36("2025-10-21_12-46-57");
+    /// Returns: "1A2B3C" (always 6 characters)
     /// </example>
-    public static string ConvertDateToBase62(string dateString)
+    public static string ConvertDateToBase36(string dateString)
     {
         try
         {
             DateTime date = ParseDateString(dateString);
             long timestamp = ConvertToDateTimeOffset(date).ToUnixTimeSeconds();
-            return ConvertToBase62(timestamp);
+            return ConvertToBase36FixedLength(timestamp);
         }
         catch (Exception ex)
         {
@@ -34,25 +37,30 @@ public static class Base62DateConverter
     }
 
     /// <summary>
-    /// Converts a DateTime object to a Base62 encoded string
+    /// Converts a DateTime object to a Base36 encoded string
     /// </summary>
     /// <param name="dateTime">DateTime object to convert</param>
-    /// <returns>Base62 encoded string representation of the DateTime</returns>
-    public static string ConvertDateToBase62(DateTime dateTime)
+    /// <returns>Base36 encoded string representation of the DateTime (always 6 characters)</returns>
+    public static string ConvertDateToBase36(DateTime dateTime)
     {
         long timestamp = ConvertToDateTimeOffset(dateTime).ToUnixTimeSeconds();
-        return ConvertToBase62(timestamp);
+        return ConvertToBase36FixedLength(timestamp);
     }
 
     /// <summary>
-    /// Converts a Base62 encoded string back to a DateTime object
+    /// Converts a Base36 encoded string back to a DateTime object
     /// </summary>
-    /// <param name="base62String">Base62 encoded string to convert</param>
-    /// <returns>DateTime object reconstructed from the Base62 string</returns>
-    /// <exception cref="ArgumentException">Thrown when Base62 string is invalid</exception>
-    public static DateTime ConvertBase62ToDate(string base62String)
+    /// <param name="base36String">Base36 encoded string to convert (must be 6 characters)</param>
+    /// <returns>DateTime object reconstructed from the Base36 string</returns>
+    /// <exception cref="ArgumentException">Thrown when Base36 string is invalid or not 6 characters</exception>
+    public static DateTime ConvertBase36ToDate(string base36String)
     {
-        long timestamp = ConvertFromBase62(base62String);
+        if (base36String == null || base36String.Length != OUTPUT_LENGTH)
+        {
+            throw new ArgumentException($"Base36 string must be exactly {OUTPUT_LENGTH} characters long");
+        }
+
+        long timestamp = ConvertFromBase36(base36String);
         return DateTimeOffset.FromUnixTimeSeconds(timestamp).DateTime;
     }
 
@@ -96,61 +104,141 @@ public static class Base62DateConverter
     }
 
     /// <summary>
-    /// Converts a long integer to Base62 string representation
+    /// Converts a long integer to Base36 string representation with fixed length of 6 characters
     /// </summary>
     /// <param name="number">Number to convert</param>
-    /// <returns>Base62 encoded string</returns>
-    private static string ConvertToBase62(long number)
+    /// <returns>Base36 encoded string (always 6 characters)</returns>
+    private static string ConvertToBase36FixedLength(long number)
     {
-        if (number == 0) return "0";
-
-        bool isNegative = number < 0;
-        long value = Math.Abs(number);
-        StringBuilder result = new StringBuilder();
-
-        while (value > 0)
+        if (number < 0)
         {
-            long remainder = value % 62;
-            result.Insert(0, BASE62_ALPHABET[(int)remainder]);
-            value /= 62;
+            throw new ArgumentException("Timestamp cannot be negative for fixed-length encoding");
         }
 
-        if (isNegative)
+        char[] result = new char[OUTPUT_LENGTH];
+
+        // Fill with zeros initially
+        for (int i = 0; i < OUTPUT_LENGTH; i++)
         {
-            result.Insert(0, '-');
+            result[i] = '0';
         }
 
-        return result.ToString();
+        long value = number;
+        int position = OUTPUT_LENGTH - 1;
+
+        // Convert to Base36 from right to left
+        while (value > 0 && position >= 0)
+        {
+            long remainder = value % 36;
+            result[position] = BASE36_ALPHABET[(int)remainder];
+            value /= 36;
+            position--;
+        }
+
+        // If the number is too large to fit in 6 characters, use modulo to fit it
+        if (value > 0)
+        {
+            // Use modulo operation to ensure it fits in 6 characters
+            // This creates a hash-like behavior for very large timestamps
+            long maxValue = (long)Math.Pow(36, OUTPUT_LENGTH) - 1;
+            return ConvertToBase36FixedLength(number % maxValue);
+        }
+
+        return new string(result);
     }
 
     /// <summary>
-    /// Converts a Base62 string back to a long integer
+    /// Converts a Base36 string back to a long integer
     /// </summary>
-    /// <param name="base62String">Base62 string to convert</param>
+    /// <param name="base36String">Base36 string to convert</param>
     /// <returns>Decoded long integer</returns>
-    /// <exception cref="ArgumentException">Thrown when string contains invalid Base62 characters</exception>
-    private static long ConvertFromBase62(string base62String)
+    /// <exception cref="ArgumentException">Thrown when string contains invalid Base36 characters</exception>
+    private static long ConvertFromBase36(string base36String)
     {
-        bool isNegative = base62String.StartsWith("-");
-        string str = isNegative ? base62String.Substring(1) : base62String;
+        if (string.IsNullOrEmpty(base36String))
+            throw new ArgumentException("Base36 string cannot be null or empty");
 
         long result = 0;
         long multiplier = 1;
 
-        for (int i = str.Length - 1; i >= 0; i--)
+        for (int i = base36String.Length - 1; i >= 0; i--)
         {
-            char c = str[i];
-            int value = BASE62_ALPHABET.IndexOf(c);
+            char c = base36String[i];
+            int value = BASE36_ALPHABET.IndexOf(c);
 
             if (value == -1)
             {
-                throw new ArgumentException($"Invalid character in Base62 string: {c}");
+                throw new ArgumentException($"Invalid character in Base36 string: {c}");
             }
 
             result += value * multiplier;
-            multiplier *= 62;
+            multiplier *= 36;
         }
 
-        return isNegative ? -result : result;
+        return result;
+    }
+
+    /// <summary>
+    /// Validates if a string contains only valid Base36 characters (0-9, A-Z) and is 6 characters long
+    /// </summary>
+    /// <param name="input">String to validate</param>
+    /// <returns>True if the string is valid Base36 and 6 characters long</returns>
+    public static bool IsValidBase36(string input)
+    {
+        if (string.IsNullOrEmpty(input) || input.Length != OUTPUT_LENGTH)
+            return false;
+
+        foreach (char c in input)
+        {
+            if (BASE36_ALPHABET.IndexOf(c) == -1)
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Gets the current date-time as a Base36 encoded string
+    /// </summary>
+    /// <returns>Base36 encoded string of current date-time (6 characters)</returns>
+    public static string GetCurrentDateAsBase36()
+    {
+        return ConvertDateToBase36(DateTime.Now);
+    }
+
+    /// <summary>
+    /// Gets the maximum date that can be represented in 6-character Base36 format
+    /// </summary>
+    /// <returns>Maximum representable DateTime</returns>
+    public static DateTime GetMaxBase36Date()
+    {
+        long maxTimestamp = (long)Math.Pow(36, OUTPUT_LENGTH) - 1;
+        return DateTimeOffset.FromUnixTimeSeconds(maxTimestamp).DateTime;
+    }
+
+    /// <summary>
+    /// Gets the minimum date that can be represented in Base36 format
+    /// </summary>
+    /// <returns>Minimum representable DateTime</returns>
+    public static DateTime GetMinBase36Date()
+    {
+        return DateTimeOffset.FromUnixTimeSeconds(0).DateTime;
+    }
+
+    /// <summary>
+    /// Generates a random 6-character Base36 string for testing
+    /// </summary>
+    /// <returns>Random Base36 string</returns>
+    public static string GenerateRandomBase36()
+    {
+        Random random = new Random();
+        char[] result = new char[OUTPUT_LENGTH];
+
+        for (int i = 0; i < OUTPUT_LENGTH; i++)
+        {
+            result[i] = BASE36_ALPHABET[random.Next(0, 36)];
+        }
+
+        return new string(result);
     }
 }

@@ -1,9 +1,10 @@
-using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
-using UnityEngine.Video;
 using System;
 using System.Collections;
+using System.IO;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.Video;
 
 /// <summary>
 /// Class in charge of managing the Panel Celebration.
@@ -96,30 +97,31 @@ public class Panel6Content : PanelContent
         if (GlobalVariables.offline)
         {
             Prize selectedPrize = prizeManager.GetRandomPrizeAndDecrement();
-                if (selectedPrize != null)
-                {
-                    Debug.Log($"Premio seleccionado: {selectedPrize.showName}");
-                    Debug.Log($"Slot ID: {selectedPrize.slot_id}");
-                    Debug.Log($"Probabilidad: {selectedPrize.probabilityWeight}");
-                    Debug.Log($"Stock: {selectedPrize.inStock}");
-                    Debug.Log($"Cantidad: {selectedPrize.quantity}");
+            if (selectedPrize != null)
+            {
+                Debug.Log($"Selected prize: {selectedPrize.showName}");
+                Debug.Log($"Slot ID: {selectedPrize.slot_id}");
+                Debug.Log($"Probability: {selectedPrize.probabilityWeight}");
+                Debug.Log($"Stock: {selectedPrize.inStock}");
+                Debug.Log($"Quantity: {selectedPrize.quantity}");
 
-                    // Usar el premio seleccionado...
-                }
+                // Use the selected prize...
+            }
+
+            // Print only the fields that are not commented in the JSON
             Debug.Log("\"start_time\": \"" + GlobalVariables.metricsObj.time_start + "\",\n");
-        Debug.Log("\"end_time\": \"" + DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:sszzz") + "\",\n");
+            Debug.Log("\"end_time\": \"" + DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:sszzz") + "\",\n");
             Debug.Log("\"total_game_time\": " + 1 + ",\n");
             Debug.Log("\"total_screen_time\": " + 1 + ",\n");
             Debug.Log("\"date\": \"" + DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:sszzz") + "\",\n");
             Debug.Log("\"event_id\": \"" + GlobalVariables.machineData.event_id + "\",\n");
             Debug.Log("\"machine_id\": \"" + GlobalVariables.machineData._id + "\",\n");
             Debug.Log("\"total_clicks\": " + 0 + ",\n");
-            Debug.Log("\"s3_video_url\": \"" + GlobalVariables.videoUpload.s3_url + "\",\n");
-
-            Debug.Log("\"public_web_url\": " + "\"https://app.myvendingmachine.com/game/77980a15-4684-4b7c-b61d-9a990cc8eaa3" + "\",\n");
+            Debug.Log("\"access_code\": \"" + GlobalVariables.videoName + "\",\n");
+            Debug.Log("\"offline_game_id\": \"" + GlobalVariables.videoName + "\",\n");
+            Debug.Log("\"upload_mode\": \"" + "offline" + "\",\n");
             Debug.Log("\"is_highlight\":false," + "\n");
-            Debug.Log("\"share_allowance\":false," + "\n");
-            Debug.Log("\"prize\":{");
+            Debug.Log("\"prize_info\":{");
             Debug.Log("\"slot_id\": \"" + selectedPrize.slot_id + "\",\n");
             Debug.Log("\"name\":\"r0c1\",");
             Debug.Log("\"showName\": \"" + selectedPrize.showName + "\",\n");
@@ -128,58 +130,86 @@ public class Panel6Content : PanelContent
             Debug.Log("\"probabilityWeight\": " + selectedPrize.probabilityWeight + ",\n");
             Debug.Log("\"inStock\": " + selectedPrize.inStock.ToString().ToLower() + ",\n");
             Debug.Log("\"quantity\": " + selectedPrize.quantity + "},\n");
-            Debug.Log("\"final_url\":" + "\"https://fandomprizemachine.com/?eventId=68c08cc6aa5a1fc56fdf684b&url=https://fandomprizemachine.com/?eventId=68c08cc6aa5a1fc56fdf684b&url=https://vendingmachine-assets-archive.s3.us-east-1.amazonaws.com/uploads/20251010_012215_" + "\",\n");
-            Debug.Log("\"_id\":\"68e86a1907146812d88cd88a" + "\"\n");
             Debug.Log("}");
-            string jsonBodyOffline =
-       "{\n"
-       + "\"start_time\": \"" + GlobalVariables.metricsObj.time_start + "\",\n"
-       + "\"end_time\": \"" + DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:sszzz") + "\",\n"
-       + "\"total_game_time\": " + 1 + ",\n"
-       + "\"total_screen_time\": " + 1 + ",\n"
-       + "\"date\": \"" + DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:sszzz") + "\",\n"
-       + "\"event_id\": \"" + GlobalVariables.machineData.event_id + "\",\n"
-       + "\"machine_id\": \"" + GlobalVariables.machineData._id + "\",\n"
-       + "\"total_clicks\": " + 0 + ",\n"
-       + "\"s3_video_url\": \"" + GlobalVariables.videoUpload.s3_url + "\",\n"
 
-       + "\"public_web_url\": " + "\"https://app.myvendingmachine.com/game/77980a15-4684-4b7c-b61d-9a990cc8eaa3" + "\",\n"
-       + "\"is_highlight\":false," + "\n"
-       + "\"share_allowance\":false," + "\n"
-       + "\"prize\":{"
-       + "\"slot_id\": \"" + selectedPrize.slot_id + "\",\n"
-       + "\"name\":\"r0c1\","
-        + "\"showName\": \"" + selectedPrize.showName + "\",\n"
-       + "\"price\":0.0," 
-       + "\"rewardName\":\"Reward Name\","
-        + "\"probabilityWeight\": " + selectedPrize.probabilityWeight + ",\n"
-        + "\"inStock\": " + selectedPrize.inStock.ToString().ToLower() + ",\n"
-        + "\"quantity\": " + selectedPrize.quantity + "},\n"
-       + "\"final_url\":" + "\"https://fandomprizemachine.com/?eventId=68c08cc6aa5a1fc56fdf684b&url=https://fandomprizemachine.com/?eventId=68c08cc6aa5a1fc56fdf684b&url=https://vendingmachine-assets-archive.s3.us-east-1.amazonaws.com/uploads/20251010_012215_" + "\",\n"
-       + "\"_id\":\"68e86a1907146812d88cd88a" + "\"\n"
-    + "}";
+            string jsonBodyOffline =
+           "{\n"
+           + "\"start_time\": \"" + GlobalVariables.metricsObj.time_start + "\",\n"
+           + "\"end_time\": \"" + DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:sszzz") + "\",\n"
+           + "\"total_game_time\": " + 1 + ",\n"
+           + "\"total_screen_time\": " + 1 + ",\n"
+           + "\"date\": \"" + DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:sszzz") + "\",\n"
+           + "\"event_id\": \"" + GlobalVariables.machineData.event_id + "\",\n"
+           + "\"machine_id\": \"" + GlobalVariables.machineData._id + "\",\n"
+           + "\"total_clicks\": " + 0 + ",\n"
+           + "\"access_code\": \"" + GlobalVariables.videoName + "\",\n"
+           + "\"offline_game_id\": \"" + GlobalVariables.videoName + "\",\n"
+           + "\"upload_mode\": \"" + "offline" + "\",\n"
+           + "\"is_highlight\":false," + "\n"
+           + "\"s3_video_url\": \"" + GlobalVariables.videoUpload.s3_url + "\",\n"
+           + "\"public_web_url\": " + "\"https://app.myvendingmachine.com/game/77980a15-4684-4b7c-b61d-9a990cc8eaa3" + "\",\n"
+           + "\"share_allowance\":false," + "\n"
+           + "\"final_url\":" + "\"https://www.fandomprizemachine.com/" + "\",\n"
+           + "\"_id\": \"" + GlobalVariables.machineData.event_id + "\",\n"
+           + "\"prize_info\":{"
+           + "\"slot_id\": \"" + selectedPrize.slot_id + "\",\n"
+           + "\"name\": \"" + selectedPrize.name + "\",\n"
+           + "\"showName\": \"" + selectedPrize.showName + "\",\n"
+           + "\"price\":0.0,"
+           + "\"rewardName\":\"Reward Name\","
+           + "\"probabilityWeight\": " + selectedPrize.probabilityWeight + ",\n"
+           + "\"inStock\": " + selectedPrize.inStock.ToString().ToLower() + ",\n"
+           + "\"quantity\": " + selectedPrize.quantity + "}\n"
+        + "}";
+
             Debug.Log(jsonBodyOffline);
+
+            // Save JSON to text file
+            SaveJsonToFile(jsonBodyOffline);
+
             HandlePostResponse(jsonBodyOffline);
-            //HandlePostResponse("{\"start_time\":\"2025-10-09T20:06:13.882000\",\"end_time\":\"2025-10-10T02:06:35\",\"total_game_time\":1.0,\"total_screen_time\":1.0,\"date\":\"2025-10-10T02:06:35\",\"machine_id\":\"6884f98a78ea05f217e24b73\",\"event_id\":\"68c08cc6aa5a1fc56fdf684b\",\"total_clicks\":0,\"s3_video_url\":\"https://fandomprizemachine.com/?eventId=68c08cc6aa5a1fc56fdf684b&url=https://vendingmachine-assets-archive.s3.us-east-1.amazonaws.com/uploads/20251010_012215_\",\"public_web_url\":\"https://app.myvendingmachine.com/game/77980a15-4684-4b7c-b61d-9a990cc8eaa3\",\"is_highlight\":false,\"share_allowance\":false,\"prize\":{\"slot_id\":\"s1\",\"name\":\"r0c1\",\"showName\":\"MNUFC T-Shirt\",\"price\":0.0,\"rewardName\":\"Reward Name\",\"probabilityWeight\":25.0,\"inStock\":true,\"quantity\":84},\"final_url\":\"https://fandomprizemachine.com/?eventId=68c08cc6aa5a1fc56fdf684b&url=https://fandomprizemachine.com/?eventId=68c08cc6aa5a1fc56fdf684b&url=https://vendingmachine-assets-archive.s3.us-east-1.amazonaws.com/uploads/20251010_012215_\",\"_id\":\"68e86a1907146812d88cd88a\"}"
-//);
         }
         else
         {
             string jsonBody =
-        "{\n"
-        + "\"start_time\": \"" + GlobalVariables.metricsObj.time_start + "\",\n"
-        + "\"end_time\": \"" + DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:sszzz") + "\",\n"
-        + "\"total_game_time\": " + 1 + ",\n"
-        + "\"total_screen_time\": " + 1 + ",\n"
-        + "\"date\": \"" + DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:sszzz") + "\",\n"
-        + "\"event_id\": \"" + GlobalVariables.machineData.event_id + "\",\n"
-        + "\"machine_id\": \"" + GlobalVariables.machineData._id + "\",\n"
-        + "\"total_clicks\": " + 0 + ",\n"
-        + "\"s3_video_url\": \"" + GlobalVariables.videoUpload.s3_url + "\"\n"
-    + "}";
+            "{\n"
+            + "\"start_time\": \"" + GlobalVariables.metricsObj.time_start + "\",\n"
+            + "\"end_time\": \"" + DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:sszzz") + "\",\n"
+            + "\"total_game_time\": " + 1 + ",\n"
+            + "\"total_screen_time\": " + 1 + ",\n"
+            + "\"date\": \"" + DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:sszzz") + "\",\n"
+            + "\"event_id\": \"" + GlobalVariables.machineData.event_id + "\",\n"
+            + "\"machine_id\": \"" + GlobalVariables.machineData._id + "\",\n"
+            + "\"total_clicks\": " + 0 + ",\n"
+            + "\"s3_video_url\": \"" + GlobalVariables.videoUpload.s3_url + "\"\n"
+        + "}";
             HttpManager.AddRequestHeader("X-Machine-Key", GlobalVariables.machinesSecretKey);
             HttpManager.AddRequestHeader("Content-Type", "application/json");
             HttpManager.Post(uploadUrl, jsonBody, HandlePostResponse);
+        }
+    }
+
+    /// <summary>
+    /// Saves JSON to a text file with the name GlobalVariables.videoName + "prize.txt"
+    /// </summary>
+    /// <param name="jsonContent">JSON content to save</param>
+    private void SaveJsonToFile(string jsonContent)
+    {
+        try
+        {
+            // Create file name
+            string fileName = GlobalVariables.videoName + "prize.txt";
+            string filePath = Path.Combine(Application.persistentDataPath, fileName);
+
+            // Write JSON content to file
+            File.WriteAllText(filePath, jsonContent);
+
+            Debug.Log($"File saved successfully: {filePath}");
+            Debug.Log($"Saved content: {jsonContent}");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error saving JSON file: {e.Message}");
         }
     }
 

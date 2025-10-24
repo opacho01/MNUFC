@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using System.IO;
 using System.Collections;
@@ -26,12 +26,6 @@ public class OfflineDataUploader : MonoBehaviour
 
     void Start()
     {
-        // Setup button listener
-        if (uploadButton != null)
-        {
-            uploadButton.onClick.AddListener(StartUploadProcess);
-        }
-
         // Hide progress panel initially
         if (progressPanel != null)
         {
@@ -62,11 +56,8 @@ public class OfflineDataUploader : MonoBehaviour
         uploadedFiles = 0;
         filesToUpload.Clear();
 
-        // Show progress panel
-        if (progressPanel != null)
-        {
-            progressPanel.SetActive(true);
-        }
+        progressPanel.SetActive(true);
+
 
         // Find all files to upload
         FindFilesToUpload();
@@ -231,7 +222,7 @@ public class OfflineDataUploader : MonoBehaviour
             // Send the metrics data
             HttpManager.AddRequestHeader("X-Machine-Key", GlobalVariables.machinesSecretKey);
             HttpManager.AddRequestHeader("Content-Type", "application/json");
-            HttpManager.Post(URLdirectory.sendAnalitics, jsonData, callback);
+            HttpManager.Post(URLdirectory.sendAnalitics + "?mode=offline", jsonData, callback);
         }
         catch (System.Exception e)
         {
@@ -257,7 +248,7 @@ public class OfflineDataUploader : MonoBehaviour
     }
 
     /// <summary>
-    /// Handles the response from metrics upload
+    /// Handles the response from metrics upload - MODIFICADO PARA BORRAR ARCHIVOS TXT
     /// </summary>
     private void HandleMetricsUploadResponse(string response, string filePath, string fileName)
     {
@@ -265,31 +256,42 @@ public class OfflineDataUploader : MonoBehaviour
         {
             Debug.Log($"Successfully uploaded metrics: {fileName}");
 
-            // Find if there's a corresponding video for this metrics file
+            // SIEMPRE borrar el archivo .txt después de un envío exitoso
+            SafeDeleteFile(filePath);
+            Debug.Log($"Deleted metrics file after successful upload: {fileName}");
+
+            // Verificar si existe una carpeta de video correspondiente
             string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
             string videoFolder = Path.Combine(Application.persistentDataPath, fileNameWithoutExtension);
 
-            // Only delete the metrics file if the video doesn't exist or was already uploaded
+            // Si no existe carpeta de video o no hay archivos de video, el proceso termina aquí
             if (!Directory.Exists(videoFolder))
             {
-                SafeDeleteFile(filePath);
+                Debug.Log($"No video folder found for {fileNameWithoutExtension}, metrics cleanup completed");
+                return;
             }
-            else
+
+            // Si existe la carpeta de video, verificar si hay archivos de video
+            string[] videoFiles = Directory.GetFiles(videoFolder, "*.mp4");
+            if (videoFiles.Length == 0)
             {
-                // Check if video file exists in the folder
-                string videoFile = Path.Combine(videoFolder, fileNameWithoutExtension + ".mp4");
-                if (!File.Exists(videoFile))
+                // Si no hay videos, borrar la carpeta vacía
+                try
                 {
-                    // If no video file exists, delete the metrics file
-                    SafeDeleteFile(filePath);
+                    Directory.Delete(videoFolder);
+                    Debug.Log($"Deleted empty video folder: {videoFolder}");
                 }
-                // If video exists, we'll wait for it to be uploaded before deleting the folder
+                catch (System.Exception e)
+                {
+                    Debug.LogWarning($"Could not delete video folder {videoFolder}: {e.Message}");
+                }
             }
+            // Si hay videos, se dejarán para que se suban posteriormente
         }
         else
         {
             Debug.LogWarning($"Failed to upload metrics: {fileName}");
-            // Keep the file for retry later
+            // Mantener el archivo para reintentar más tarde
         }
     }
 
@@ -325,6 +327,7 @@ public class OfflineDataUploader : MonoBehaviour
             {
                 Debug.Log($"Successfully uploaded video: {fileName}");
                 // Delete video file and its folder after successful upload
+                Debug.Log("Filepath " + filePath);
                 SafeDeleteVideoAndFolder(filePath);
             }
             else
@@ -401,10 +404,12 @@ public class OfflineDataUploader : MonoBehaviour
             // Delete the video file
             SafeDeleteFile(videoFilePath);
 
-            // Delete the corresponding metrics file if it exists
+            // El archivo .txt ya debería haber sido borrado en HandleMetricsUploadResponse
+            // pero por si acaso, verificamos y lo borramos si todavía existe
             if (File.Exists(metricsFilePath))
             {
                 SafeDeleteFile(metricsFilePath);
+                Debug.Log($"Deleted corresponding metrics file: {Path.GetFileName(metricsFilePath)}");
             }
 
             // Delete the folder if it's empty
@@ -415,6 +420,10 @@ public class OfflineDataUploader : MonoBehaviour
                 {
                     Directory.Delete(folderPath);
                     Debug.Log($"Deleted empty folder: {Path.GetFileName(folderPath)}");
+                }
+                else
+                {
+                    Debug.Log($"Folder not empty, keeping: {folderPath}");
                 }
             }
         }
