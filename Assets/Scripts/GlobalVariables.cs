@@ -121,4 +121,6 @@ public static class GlobalVariables
     /// Identifies the name of video in the interaction.
     /// </summary>
     public static string videoName = "";
+
+    public static Prize selectedPrize;
 }

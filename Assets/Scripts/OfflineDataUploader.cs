@@ -1,10 +1,11 @@
-﻿using UnityEngine;
-using UnityEngine.UI;
-using System.IO;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using TMPro;
+using UnityEngine;
+using UnityEngine.Networking;
+using UnityEngine.UI;
 
 public class OfflineDataUploader : MonoBehaviour
 {
@@ -57,7 +58,6 @@ public class OfflineDataUploader : MonoBehaviour
         filesToUpload.Clear();
 
         progressPanel.SetActive(true);
-
 
         // Find all files to upload
         FindFilesToUpload();
@@ -126,19 +126,37 @@ public class OfflineDataUploader : MonoBehaviour
                 continue;
             }
 
-            // Add the text file to upload list
-            filesToUpload.Add(txtFile);
+            // Skip prize files here - we'll handle them with their corresponding metrics files
+            if (fileNameWithoutExtension.EndsWith("prize"))
+            {
+                continue;
+            }
 
-            // Check if there's a corresponding folder with video (not mandatory)
-            string videoFolder = Path.Combine(persistentDataPath, fileNameWithoutExtension);
+            // This is a regular metrics file
+            string baseFileName = fileNameWithoutExtension;
+
+            // FIRST: Add prize file if it exists (this ensures it's uploaded first)
+            string prizeFilePath = Path.Combine(persistentDataPath, baseFileName + "prize.txt");
+            if (File.Exists(prizeFilePath))
+            {
+                filesToUpload.Add(prizeFilePath);
+                Debug.Log($"Found prize file: {prizeFilePath}");
+            }
+
+            // SECOND: Add the main metrics file
+            filesToUpload.Add(txtFile);
+            Debug.Log($"Found metrics file: {txtFile}");
+
+            // THIRD: Check if there's a corresponding folder with video
+            string videoFolder = Path.Combine(persistentDataPath, baseFileName);
             if (Directory.Exists(videoFolder))
             {
                 // Look for video file with same name in the folder
-                string videoFile = Path.Combine(videoFolder, fileNameWithoutExtension + ".mp4");
+                string videoFile = Path.Combine(videoFolder, baseFileName + ".mp4");
                 if (File.Exists(videoFile))
                 {
                     filesToUpload.Add(videoFile);
-                    Debug.Log($"Found video for {fileNameWithoutExtension}: {videoFile}");
+                    Debug.Log($"Found video for {baseFileName}: {videoFile}");
                 }
                 else
                 {
@@ -147,21 +165,29 @@ public class OfflineDataUploader : MonoBehaviour
                     if (videoFiles.Length > 0)
                     {
                         filesToUpload.Add(videoFiles[0]);
-                        Debug.Log($"Found alternative video for {fileNameWithoutExtension}: {videoFiles[0]}");
+                        Debug.Log($"Found alternative video for {baseFileName}: {videoFiles[0]}");
                     }
                     else
                     {
-                        Debug.Log($"No video found for {fileNameWithoutExtension}, uploading metrics only");
+                        Debug.Log($"No video found for {baseFileName}, uploading metrics only");
                     }
                 }
             }
             else
             {
-                Debug.Log($"No video folder found for {fileNameWithoutExtension}, uploading metrics only");
+                Debug.Log($"No video folder found for {baseFileName}, uploading metrics only");
             }
         }
 
         Debug.Log($"Found {filesToUpload.Count} files to upload");
+
+        // Log the upload order for verification
+        Debug.Log("Upload order:");
+        for (int i = 0; i < filesToUpload.Count; i++)
+        {
+            string fileName = Path.GetFileName(filesToUpload[i]);
+            Debug.Log($"{i + 1}. {fileName}");
+        }
     }
 
     /// <summary>
@@ -178,10 +204,19 @@ public class OfflineDataUploader : MonoBehaviour
 
         string fileName = Path.GetFileName(filePath);
         string fileExtension = Path.GetExtension(filePath).ToLower();
+        string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
 
         UpdateStatus($"Uploading: {fileName}");
 
-        if (fileExtension == ".txt")
+        // Check if this is a prize file
+        bool isPrizeFile = fileNameWithoutExtension.EndsWith("prize");
+
+        if (isPrizeFile)
+        {
+            // This is a prize file - send to specific endpoint
+            yield return StartCoroutine(UploadPrizeFile(filePath));
+        }
+        else if (fileExtension == ".txt")
         {
             // This is a metrics file - send as JSON
             yield return StartCoroutine(UploadMetricsFile(filePath));
@@ -198,6 +233,138 @@ public class OfflineDataUploader : MonoBehaviour
     }
 
     /// <summary>
+    /// Uploads a prize file to the specific endpoint using UnityWebRequest directly
+    /// </summary>
+    /// <param name="filePath">Path to the prize file</param>
+    private IEnumerator UploadPrizeFile(string filePath)
+    {
+        bool uploadCompleted = false;
+        bool uploadSuccess = false;
+        string responseText = "";
+        string jsonData = "";
+        string fileName = "";
+
+        try
+        {
+            jsonData = File.ReadAllText(filePath);
+            fileName = Path.GetFileName(filePath);
+
+            Debug.Log($"=== STARTING PRIZE FILE UPLOAD ===");
+            Debug.Log($"Prize file: {fileName}");
+            Debug.Log($"File path: {filePath}");
+            Debug.Log($"JSON data length: {jsonData.Length}");
+            Debug.Log($"JSON data: {jsonData}");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error reading prize file {filePath}: {e.Message}");
+            HandlePrizeUploadResponse(null, filePath, Path.GetFileName(filePath));
+            yield break;
+        }
+
+        // Usar la URL completa directamente
+        string uploadUrl2 = "https://whitelabelvendingmachine.com/api/v1/games/machineauth?mode=offline";
+        string uploadUrl = URLdirectory.serverUrl + URLdirectory.rewardUrl + "?mode=offline";
+        Debug.Log("ÑÑÑÑÑÑÑÑÑÑÑ " + uploadUrl);
+        Debug.Log("ÑÑÑÑÑÑÑÑÑÑÑ2 " + uploadUrl2);
+        // Print CURL command for debugging
+        PrintPrizeCurlCommand(uploadUrl, jsonData);
+
+        Debug.Log($"Sending prize file to: {uploadUrl}");
+
+        // Usar UnityWebRequest directamente para evitar problemas con HttpManager
+        using (UnityWebRequest webRequest = new UnityWebRequest(uploadUrl, "POST"))
+        {
+            byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
+            webRequest.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            webRequest.downloadHandler = new DownloadHandlerBuffer();
+            webRequest.SetRequestHeader("Content-Type", "application/json");
+            webRequest.SetRequestHeader("X-Machine-Key", GlobalVariables.machinesSecretKey);
+
+            // Agregar logs de los headers
+            Debug.Log($"Headers: X-Machine-Key: {GlobalVariables.machinesSecretKey}");
+            Debug.Log($"Headers: Content-Type: application/json");
+
+            // Enviar la request fuera del try-catch
+            yield return webRequest.SendWebRequest();
+
+            // Manejar la respuesta después del yield
+            if (webRequest.result == UnityWebRequest.Result.ConnectionError ||
+                webRequest.result == UnityWebRequest.Result.ProtocolError)
+            {
+                Debug.LogError($"Prize upload error: {webRequest.error}");
+                Debug.LogError($"Response: {webRequest.downloadHandler?.text}");
+                responseText = null;
+            }
+            else
+            {
+                responseText = webRequest.downloadHandler.text;
+                Debug.Log($"Prize upload successful: {responseText}");
+            }
+
+            uploadCompleted = true;
+            uploadSuccess = !string.IsNullOrEmpty(responseText);
+        }
+
+        HandlePrizeUploadResponse(responseText, filePath, fileName);
+    }
+
+    /// <summary>
+    /// Prints a CURL command for prize file upload
+    /// </summary>
+    private void PrintPrizeCurlCommand(string url, string jsonData)
+    {
+        try
+        {
+            // Escapar comillas en el JSON para el comando CURL
+            string escapedJson = jsonData.Replace("'", "'\\''");
+
+            string curlCommand = $"curl -X POST \\\n";
+            curlCommand += $"  -H \"X-Machine-Key: {GlobalVariables.machinesSecretKey}\" \\\n";
+            curlCommand += $"  -H \"Content-Type: application/json\" \\\n";
+            curlCommand += $"  -d '{escapedJson}' \\\n";
+            curlCommand += $"  \"{url}\"";
+
+            Debug.Log("=== PRIZE CURL COMMAND ===");
+            Debug.Log(curlCommand);
+            Debug.Log("=== END CURL COMMAND ===");
+
+            // También imprimir una versión simplificada
+            string simpleCurl = $"curl -X POST -H \"X-Machine-Key: {GlobalVariables.machinesSecretKey}\" -H \"Content-Type: application/json\" -d '{escapedJson}' \"{url}\"";
+            Debug.Log($"Simplified CURL: {simpleCurl}");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"Failed to generate prize CURL command: {e.Message}");
+        }
+    }
+
+
+    /// <summary>
+    /// Handles the response from prize upload - DELETES FILE ON SUCCESS
+    /// </summary>
+    private void HandlePrizeUploadResponse(string response, string filePath, string fileName)
+    {
+        Debug.Log($"=== HANDLE PRIZE UPLOAD RESPONSE ===");
+        Debug.Log($"File: {fileName}");
+        Debug.Log($"Response: {response}");
+
+        if (!string.IsNullOrEmpty(response))
+        {
+            Debug.Log($"SUCCESS: Prize data uploaded: {fileName}");
+
+            // Delete the prize file after successful upload
+            SafeDeleteFile(filePath);
+            Debug.Log($"SUCCESS: Prize file deleted: {fileName}");
+        }
+        else
+        {
+            Debug.LogWarning($"FAILED: Prize data upload: {fileName}");
+            // Keep the file for retry later
+        }
+    }
+
+    /// <summary>
     /// Uploads a metrics text file as JSON
     /// </summary>
     /// <param name="filePath">Path to the metrics file</param>
@@ -205,60 +372,122 @@ public class OfflineDataUploader : MonoBehaviour
     {
         bool uploadCompleted = false;
         bool uploadSuccess = false;
+        string responseText = "";
+        string jsonData = "";
+        string fileName = "";
 
         try
         {
-            string jsonData = File.ReadAllText(filePath);
-            string fileName = Path.GetFileName(filePath);
+            jsonData = File.ReadAllText(filePath);
+            fileName = Path.GetFileName(filePath);
 
-            // Create a custom callback to handle the response
-            System.Action<string> callback = (response) =>
-            {
-                uploadCompleted = true;
-                uploadSuccess = !string.IsNullOrEmpty(response);
-                HandleMetricsUploadResponse(response, filePath, fileName);
-            };
-
-            // Send the metrics data
-            HttpManager.AddRequestHeader("X-Machine-Key", GlobalVariables.machinesSecretKey);
-            HttpManager.AddRequestHeader("Content-Type", "application/json");
-            HttpManager.Post(URLdirectory.sendAnalitics + "?mode=offline", jsonData, callback);
+            Debug.Log($"=== STARTING METRICS FILE UPLOAD ===");
+            Debug.Log($"Metrics file: {fileName}");
+            Debug.Log($"File path: {filePath}");
+            Debug.Log($"JSON data length: {jsonData.Length}");
+            Debug.Log($"JSON data: {jsonData}");
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"Error uploading metrics file {filePath}: {e.Message}");
+            Debug.LogError($"Error reading metrics file {filePath}: {e.Message}");
+            HandleMetricsUploadResponse(null, filePath, Path.GetFileName(filePath));
+            yield break;
+        }
+
+        // Usar la URL completa directamente
+        string uploadUrl2 = "https://whitelabelvendingmachine.com/api/v1/analytics/?mode=offline";
+        string uploadUrl = URLdirectory.serverUrl + URLdirectory.sendAnalitics + "?mode=offline";
+        Debug.Log("ÑÑÑÑÑÑÑÑÑÑÑ " + uploadUrl);
+        Debug.Log("ÑÑÑÑÑÑÑÑÑÑÑ2 " + uploadUrl2);
+        // Print CURL command for debugging
+        PrintMetricsCurlCommand(uploadUrl, jsonData);
+
+        Debug.Log($"Sending metrics file to: {uploadUrl}");
+
+        // Usar UnityWebRequest directamente para evitar problemas con HttpManager
+        using (UnityWebRequest webRequest = new UnityWebRequest(uploadUrl, "POST"))
+        {
+            byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
+            webRequest.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            webRequest.downloadHandler = new DownloadHandlerBuffer();
+            webRequest.SetRequestHeader("Content-Type", "application/json");
+            webRequest.SetRequestHeader("X-Machine-Key", GlobalVariables.machinesSecretKey);
+
+            // Agregar logs de los headers
+            Debug.Log($"Headers: X-Machine-Key: {GlobalVariables.machinesSecretKey}");
+            Debug.Log($"Headers: Content-Type: application/json");
+
+            // Enviar la request fuera del try-catch
+            yield return webRequest.SendWebRequest();
+
+            // Manejar la respuesta después del yield
+            if (webRequest.result == UnityWebRequest.Result.ConnectionError ||
+                webRequest.result == UnityWebRequest.Result.ProtocolError)
+            {
+                Debug.LogError($"Metrics upload error: {webRequest.error}");
+                Debug.LogError($"Response: {webRequest.downloadHandler?.text}");
+                responseText = null;
+            }
+            else
+            {
+                responseText = webRequest.downloadHandler.text;
+                Debug.Log($"Metrics upload successful: {responseText}");
+            }
+
             uploadCompleted = true;
-            uploadSuccess = false;
+            uploadSuccess = !string.IsNullOrEmpty(responseText);
         }
 
-        // Wait for upload to complete or timeout
-        float timeout = 10f; // 10 second timeout for metrics
-        float timer = 0f;
+        HandleMetricsUploadResponse(responseText, filePath, fileName);
+    }
 
-        while (!uploadCompleted && timer < timeout)
+    /// <summary>
+    /// Prints a CURL command for metrics file upload
+    /// </summary>
+    private void PrintMetricsCurlCommand(string url, string jsonData)
+    {
+        try
         {
-            timer += Time.deltaTime;
-            yield return null;
+            // Escapar comillas en el JSON para el comando CURL
+            string escapedJson = jsonData.Replace("'", "'\\''");
+
+            string curlCommand = $"curl -X POST \\\n";
+            curlCommand += $"  -H \"X-Machine-Key: {GlobalVariables.machinesSecretKey}\" \\\n";
+            curlCommand += $"  -H \"Content-Type: application/json\" \\\n";
+            curlCommand += $"  -d '{escapedJson}' \\\n";
+            curlCommand += $"  \"{url}\"";
+
+            Debug.Log("=== METRICS CURL COMMAND ===");
+            Debug.Log(curlCommand);
+            Debug.Log("=== END CURL COMMAND ===");
+
+            // También imprimir una versión simplificada
+            string simpleCurl = $"curl -X POST -H \"X-Machine-Key: {GlobalVariables.machinesSecretKey}\" -H \"Content-Type: application/json\" -d '{escapedJson}' \"{url}\"";
+            Debug.Log($"Simplified CURL: {simpleCurl}");
         }
-
-        if (!uploadCompleted)
+        catch (System.Exception e)
         {
-            Debug.LogWarning($"Metrics upload timeout: {Path.GetFileName(filePath)}");
+            Debug.LogWarning($"Failed to generate metrics CURL command: {e.Message}");
         }
     }
+
 
     /// <summary>
     /// Handles the response from metrics upload - MODIFICADO PARA BORRAR ARCHIVOS TXT
     /// </summary>
     private void HandleMetricsUploadResponse(string response, string filePath, string fileName)
     {
+        Debug.Log($"=== HANDLE METRICS UPLOAD RESPONSE ===");
+        Debug.Log($"File: {fileName}");
+        Debug.Log($"Response: {response}");
+
         if (!string.IsNullOrEmpty(response))
         {
-            Debug.Log($"Successfully uploaded metrics: {fileName}");
+            Debug.Log($"SUCCESS: Metrics uploaded: {fileName}");
 
             // SIEMPRE borrar el archivo .txt después de un envío exitoso
             SafeDeleteFile(filePath);
-            Debug.Log($"Deleted metrics file after successful upload: {fileName}");
+            Debug.Log($"SUCCESS: Metrics file deleted: {fileName}");
 
             // Verificar si existe una carpeta de video correspondiente
             string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
@@ -290,82 +519,169 @@ public class OfflineDataUploader : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning($"Failed to upload metrics: {fileName}");
+            Debug.LogWarning($"❌ FAILED: Metrics upload: {fileName}");
             // Mantener el archivo para reintentar más tarde
         }
     }
 
     /// <summary>
-    /// Uploads a video file using VideoUpload component
+    /// Uploads a video file using direct UnityWebRequest
     /// </summary>
     /// <param name="filePath">Path to the video file</param>
     private IEnumerator UploadVideoFile(string filePath)
     {
-        if (videoUpload == null)
+        if (!File.Exists(filePath))
         {
-            Debug.LogError("VideoUpload component not assigned");
+            Debug.LogWarning($"Video file does not exist: {filePath}");
             yield break;
         }
 
         string fileName = Path.GetFileName(filePath);
+        string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
 
-        // Create a flag to track upload completion
+        Debug.Log($"=== STARTING VIDEO FILE UPLOAD ===");
+        Debug.Log($"Video file: {fileName}");
+        Debug.Log($"File path: {filePath}");
+
+        long fileSize = 0;
+        byte[] fileData = null;
+
+        try
+        {
+            fileSize = new FileInfo(filePath).Length;
+            fileData = File.ReadAllBytes(filePath);
+            Debug.Log($"Video file read successfully: {fileData.Length} bytes");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error reading video file {filePath}: {e.Message}");
+            yield break;
+        }
+
         bool uploadCompleted = false;
         bool uploadSuccess = false;
+        string responseText = "";
 
-        // Store the original callback
-        var originalCallback = videoUpload.GetType().GetField("HandleResponse",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.GetValue(videoUpload) as System.Action<string>;
+        // Usar la URL completa directamente para video upload
+        string uploadUrl2 = "https://whitelabelvendingmachine.com/api/v1/assets/machine_auth/upload";
+        string uploadUrl = URLdirectory.serverUrl + URLdirectory.videoUploadUrl;
+        Debug.Log("ÑÑÑÑÑÑÑÑÑÑÑ " + uploadUrl);
+        Debug.Log("ÑÑÑÑÑÑÑÑÑÑÑ2 " + uploadUrl2);
 
-        // Create a new callback that sets our completion flag
-        System.Action<string> uploadCallback = (response) =>
+        Debug.Log($"Sending video file to: {uploadUrl}");
+
+        // Crear WWWForm para el upload con todos los parámetros requeridos
+        WWWForm form = new WWWForm();
+        form.AddBinaryData("file", fileData, fileName, "video/mp4");
+
+        // Agregar todos los campos requeridos
+        if (!string.IsNullOrEmpty(fileNameWithoutExtension))
         {
-            uploadCompleted = true;
-            uploadSuccess = !string.IsNullOrEmpty(response);
+            form.AddField("offline_reference_id", fileNameWithoutExtension);
+            Debug.Log($"Added offline_reference_id: {fileNameWithoutExtension}");
+        }
 
-            if (uploadSuccess)
+        form.AddField("mode", "offline");
+        form.AddField("entity_type", "game");
+
+        Debug.Log($"Added fields: mode=offline, entity_type=game");
+
+        // Print CURL command for debugging
+        PrintVideoCurlCommand(uploadUrl, filePath, fileNameWithoutExtension);
+
+        // Usar UnityWebRequest directamente - DEJAR QUE UNITY MANEJE LOS HEADERS AUTOMÁTICAMENTE
+        using (UnityWebRequest webRequest = UnityWebRequest.Post(uploadUrl, form))
+        {
+            // SOLO agregar el header X-Machine-Key, NO Content-Type
+            webRequest.SetRequestHeader("X-Machine-Key", GlobalVariables.machinesSecretKey);
+
+            // Agregar logs de los headers
+            Debug.Log($"Headers: X-Machine-Key: {GlobalVariables.machinesSecretKey}");
+            Debug.Log($"Unity manejará automáticamente el Content-Type para multipart/form-data");
+
+            // Configurar timeout más largo para videos
+            webRequest.timeout = 120; // 2 minutos para videos grandes
+
+            // Enviar la request
+            yield return webRequest.SendWebRequest();
+
+            // DEBUG: Verificar los headers que se enviaron realmente
+            Debug.Log($"Request method: {webRequest.method}");
+            Debug.Log($"Request content-type: {webRequest.uploadHandler?.contentType}");
+
+            // Manejar la respuesta después del yield
+            if (webRequest.result == UnityWebRequest.Result.ConnectionError ||
+                webRequest.result == UnityWebRequest.Result.ProtocolError)
             {
-                Debug.Log($"Successfully uploaded video: {fileName}");
-                // Delete video file and its folder after successful upload
-                Debug.Log("Filepath " + filePath);
-                SafeDeleteVideoAndFolder(filePath);
+                Debug.LogError($"Video upload error: {webRequest.error}");
+                Debug.LogError($"Error response: {webRequest.downloadHandler?.text}");
+                Debug.LogError($"Response code: {webRequest.responseCode}");
+                responseText = null;
             }
             else
             {
-                Debug.LogWarning($"Failed to upload video: {fileName}");
+                responseText = webRequest.downloadHandler.text;
+                Debug.Log($"Video upload successful: {responseText}");
+                Debug.Log($"Response code: {webRequest.responseCode}");
             }
-        };
 
-        // Use reflection to set the callback (since HandleResponse is private)
-        var callbackField = videoUpload.GetType().GetField("HandleResponse",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        if (callbackField != null)
-        {
-            callbackField.SetValue(videoUpload, uploadCallback);
+            uploadCompleted = true;
+            uploadSuccess = !string.IsNullOrEmpty(responseText);
         }
 
-        // Start the upload
-        videoUpload.UploadToServer(filePath);
-
-        // Wait for upload to complete
-        float timeout = 30f; // 30 second timeout
-        float timer = 0f;
-
-        while (!uploadCompleted && timer < timeout)
+        // Manejar la respuesta del video
+        if (uploadSuccess)
         {
-            timer += Time.deltaTime;
-            yield return null;
+            Debug.Log($"✅ SUCCESS: Video uploaded: {fileName}");
+            SafeDeleteVideoAndFolder(filePath);
+        }
+        else
+        {
+            Debug.LogWarning($"❌ FAILED: Video upload: {fileName}");
         }
 
-        // Restore original callback
-        if (callbackField != null && originalCallback != null)
-        {
-            callbackField.SetValue(videoUpload, originalCallback);
-        }
+        Debug.Log($"=== VIDEO UPLOAD FINISHED ===");
+        Debug.Log($"Completed: {uploadCompleted}, Success: {uploadSuccess}");
+    }
 
-        if (!uploadCompleted)
+    /// <summary>
+    /// Prints a CURL command for video file upload
+    /// </summary>
+    private void PrintVideoCurlCommand(string url, string filePath, string offlineReferenceId)
+    {
+        try
         {
-            Debug.LogWarning($"Video upload timeout: {fileName}");
+            string curlCommand = $"curl -X POST \\\n";
+            curlCommand += $"  -H \"X-Machine-Key: {GlobalVariables.machinesSecretKey}\" \\\n";
+            curlCommand += $"  -H \"Content-Type: multipart/form-data\" \\\n";
+            curlCommand += $"  -F \"file=@\\\"{filePath}\\\";type=video/mp4\" \\\n";
+
+            if (!string.IsNullOrEmpty(offlineReferenceId))
+            {
+                curlCommand += $"  -F \"offline_reference_id={offlineReferenceId}\" \\\n";
+            }
+
+            curlCommand += $"  -F \"mode=offline\" \\\n";
+            curlCommand += $"  -F \"entity_type=game\" \\\n";
+            curlCommand += $"  \"{url}\"";
+
+            Debug.Log("=== VIDEO CURL COMMAND ===");
+            Debug.Log(curlCommand);
+            Debug.Log("=== END CURL COMMAND ===");
+
+            // También imprimir una versión simplificada
+            string simpleCurl = $"curl -X POST -H \"X-Machine-Key: {GlobalVariables.machinesSecretKey}\" -H \"Content-Type: multipart/form-data\" -F \"file=@{filePath};type=video/mp4\"";
+            if (!string.IsNullOrEmpty(offlineReferenceId))
+            {
+                simpleCurl += $" -F \"offline_reference_id={offlineReferenceId}\"";
+            }
+            simpleCurl += $" -F \"mode=offline\" -F \"entity_type=game\" \"{url}\"";
+
+            Debug.Log($"Simplified CURL: {simpleCurl}");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"Failed to generate video CURL command: {e.Message}");
         }
     }
 
@@ -390,7 +706,7 @@ public class OfflineDataUploader : MonoBehaviour
     }
 
     /// <summary>
-    /// Deletes video file and its containing folder, and the corresponding metrics file if it exists
+    /// Deletes video file and its containing folder, and the corresponding metrics and prize files
     /// </summary>
     /// <param name="videoFilePath">Path to the video file</param>
     private void SafeDeleteVideoAndFolder(string videoFilePath)
@@ -399,17 +715,37 @@ public class OfflineDataUploader : MonoBehaviour
         {
             string videoFileName = Path.GetFileNameWithoutExtension(videoFilePath);
             string folderPath = Path.GetDirectoryName(videoFilePath);
-            string metricsFilePath = Path.Combine(Application.persistentDataPath, videoFileName + ".txt");
+
+            Debug.Log($"=== STARTING VIDEO CLEANUP ===");
+            Debug.Log($"Video: {videoFileName}");
+            Debug.Log($"Folder: {folderPath}");
 
             // Delete the video file
             SafeDeleteFile(videoFilePath);
+            Debug.Log($"Video file deleted: {Path.GetFileName(videoFilePath)}");
 
-            // El archivo .txt ya debería haber sido borrado en HandleMetricsUploadResponse
-            // pero por si acaso, verificamos y lo borramos si todavía existe
+            // Delete metrics file if it exists
+            string metricsFilePath = Path.Combine(Application.persistentDataPath, videoFileName + ".txt");
             if (File.Exists(metricsFilePath))
             {
                 SafeDeleteFile(metricsFilePath);
-                Debug.Log($"Deleted corresponding metrics file: {Path.GetFileName(metricsFilePath)}");
+                Debug.Log($"Metrics file deleted: {Path.GetFileName(metricsFilePath)}");
+            }
+            else
+            {
+                Debug.Log($"Metrics file not found: {metricsFilePath}");
+            }
+
+            // Delete prize file if it exists
+            string prizeFilePath = Path.Combine(Application.persistentDataPath, videoFileName + "prize.txt");
+            if (File.Exists(prizeFilePath))
+            {
+                SafeDeleteFile(prizeFilePath);
+                Debug.Log($"Prize file deleted: {Path.GetFileName(prizeFilePath)}");
+            }
+            else
+            {
+                Debug.Log($"Prize file not found: {prizeFilePath}");
             }
 
             // Delete the folder if it's empty
@@ -419,13 +755,22 @@ public class OfflineDataUploader : MonoBehaviour
                 if (!Directory.GetFiles(folderPath).Any() && !Directory.GetDirectories(folderPath).Any())
                 {
                     Directory.Delete(folderPath);
-                    Debug.Log($"Deleted empty folder: {Path.GetFileName(folderPath)}");
+                    Debug.Log($"Empty folder deleted: {Path.GetFileName(folderPath)}");
                 }
                 else
                 {
                     Debug.Log($"Folder not empty, keeping: {folderPath}");
+                    string[] remainingFiles = Directory.GetFiles(folderPath);
+                    string[] remainingDirs = Directory.GetDirectories(folderPath);
+                    Debug.Log($"Remaining files: {remainingFiles.Length}, directories: {remainingDirs.Length}");
                 }
             }
+            else
+            {
+                Debug.Log($"Folder not found: {folderPath}");
+            }
+
+            Debug.Log($"=== VIDEO CLEANUP COMPLETED ===");
         }
         catch (System.Exception e)
         {

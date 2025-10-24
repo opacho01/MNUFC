@@ -97,6 +97,7 @@ public class Panel6Content : PanelContent
         if (GlobalVariables.offline)
         {
             Prize selectedPrize = prizeManager.GetRandomPrizeAndDecrement();
+            GlobalVariables.selectedPrize = selectedPrize;
             if (selectedPrize != null)
             {
                 Debug.Log($"Selected prize: {selectedPrize.showName}");

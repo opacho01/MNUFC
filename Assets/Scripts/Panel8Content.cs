@@ -60,6 +60,13 @@ public class Panel8Content : PanelContent
     private void OnEnable()
     {
         background.Play();
+        if (GlobalVariables.offline)
+        {
+            instructions.text = "Save your code and scan the QR code\n<color=yellow><size=90>" + GlobalVariables.videoName + "</size></color>";
+        } else
+        {
+            instructions.text = allResources.themeData.step_9_qr_screen.thank_you_banner_text;
+        }
     }
 
     /// <summary>

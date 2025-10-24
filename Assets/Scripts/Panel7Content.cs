@@ -1,9 +1,10 @@
-using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
-using UnityEngine.Video;
+using Mono.Cecil.Cil;
 using System;
 using System.Collections;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.Video;
 
 /// <summary>
 /// Manages the Prize panel, handling video playback, UI elements, animations, and prize display.
@@ -66,6 +67,7 @@ public class Panel7Content : PanelContent
     private void OnEnable()
     {
         background.Play();
+        
     }
 
     /// <summary>
@@ -93,6 +95,10 @@ public class Panel7Content : PanelContent
         {
             puppets[i].initAnim();
         }
+        if (GlobalVariables.offline)
+        {
+            prize.text = GlobalVariables.selectedPrize.showName;
+        }
     }
 
     /// <summary>
@@ -116,6 +122,10 @@ public class Panel7Content : PanelContent
         nextPanelObj.gameObject.SetActive(true);
 
         StartCoroutine(waitToChange());
+        if (GlobalVariables.offline)
+        {
+            prize.text = GlobalVariables.selectedPrize.showName;
+        }
     }
 
     /// <summary>
