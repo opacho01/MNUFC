@@ -112,9 +112,25 @@ public class OfflineDataUploader : MonoBehaviour
             return;
         }
 
-        // Find all .txt files in the root directory
-        string[] txtFiles = Directory.GetFiles(persistentDataPath, "*.txt");
+        // PRIMERO: Buscar todos los archivos prize
+        string[] prizeFiles = Directory.GetFiles(persistentDataPath, "*prize.txt");
+        foreach (string prizeFile in prizeFiles)
+        {
+            string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(prizeFile);
 
+            // Skip Player and Player-prev files
+            if (fileNameWithoutExtension == "Playerprize" || fileNameWithoutExtension == "Player-prevprize")
+            {
+                Debug.Log($"Skipping system file: {fileNameWithoutExtension}");
+                continue;
+            }
+
+            filesToUpload.Add(prizeFile);
+            Debug.Log($"Found prize file: {prizeFile}");
+        }
+
+        // SEGUNDO: Buscar todos los archivos metrics (que no sean prize)
+        string[] txtFiles = Directory.GetFiles(persistentDataPath, "*.txt");
         foreach (string txtFile in txtFiles)
         {
             string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(txtFile);
@@ -126,58 +142,62 @@ public class OfflineDataUploader : MonoBehaviour
                 continue;
             }
 
-            // Skip prize files here - we'll handle them with their corresponding metrics files
+            // Skip prize files (ya los agregamos en el primer paso)
             if (fileNameWithoutExtension.EndsWith("prize"))
             {
                 continue;
             }
 
-            // This is a regular metrics file
-            string baseFileName = fileNameWithoutExtension;
-
-            // FIRST: Add prize file if it exists (this ensures it's uploaded first)
-            string prizeFilePath = Path.Combine(persistentDataPath, baseFileName + "prize.txt");
-            if (File.Exists(prizeFilePath))
-            {
-                filesToUpload.Add(prizeFilePath);
-                Debug.Log($"Found prize file: {prizeFilePath}");
-            }
-
-            // SECOND: Add the main metrics file
             filesToUpload.Add(txtFile);
             Debug.Log($"Found metrics file: {txtFile}");
+        }
 
-            // THIRD: Check if there's a corresponding folder with video
-            string videoFolder = Path.Combine(persistentDataPath, baseFileName);
-            if (Directory.Exists(videoFolder))
+        // TERCERO: Buscar videos SOLO en carpetas con nombres de 6 caracteres
+        string[] allDirectories = Directory.GetDirectories(persistentDataPath);
+        foreach (string directory in allDirectories)
+        {
+            string directoryName = Path.GetFileName(directory);
+
+            // Skip system directories y carpeta AuxResp
+            if (directoryName == "Player" || directoryName == "Player-prev" || directoryName == "AuxResp")
             {
-                // Look for video file with same name in the folder
-                string videoFile = Path.Combine(videoFolder, baseFileName + ".mp4");
-                if (File.Exists(videoFile))
+                Debug.Log($"Skipping system/AuxResp directory: {directoryName}");
+                continue;
+            }
+
+            // SOLO procesar carpetas con nombres de exactamente 6 caracteres
+            if (directoryName.Length != 6)
+            {
+                Debug.Log($"Skipping directory (not 6 characters): {directoryName}");
+                continue;
+            }
+
+            // Buscar archivos de video en la carpeta
+            string[] videoFiles = Directory.GetFiles(directory, "*.mp4");
+            foreach (string videoFile in videoFiles)
+            {
+                filesToUpload.Add(videoFile);
+                Debug.Log($"Found video file in 6-char folder: {videoFile}");
+            }
+
+            // Si no hay videos MP4, buscar cualquier archivo de video en formatos alternativos
+            if (videoFiles.Length == 0)
+            {
+                string[] allVideoFiles = Directory.GetFiles(directory)
+                    .Where(f => f.ToLower().EndsWith(".mp4") ||
+                               f.ToLower().EndsWith(".mov") ||
+                               f.ToLower().EndsWith(".avi"))
+                    .ToArray();
+
+                foreach (string videoFile in allVideoFiles)
                 {
                     filesToUpload.Add(videoFile);
-                    Debug.Log($"Found video for {baseFileName}: {videoFile}");
+                    Debug.Log($"Found video file (alternative format) in 6-char folder: {videoFile}");
                 }
-                else
-                {
-                    // If exact name not found, look for any .mp4 file in the folder
-                    string[] videoFiles = Directory.GetFiles(videoFolder, "*.mp4");
-                    if (videoFiles.Length > 0)
-                    {
-                        filesToUpload.Add(videoFiles[0]);
-                        Debug.Log($"Found alternative video for {baseFileName}: {videoFiles[0]}");
-                    }
-                    else
-                    {
-                        Debug.Log($"No video found for {baseFileName}, uploading metrics only");
-                    }
-                }
-            }
-            else
-            {
-                Debug.Log($"No video folder found for {baseFileName}, uploading metrics only");
             }
         }
+
+        // NOTA: Ya NO buscamos videos sueltos en el directorio principal
 
         Debug.Log($"Found {filesToUpload.Count} files to upload");
 
@@ -186,7 +206,13 @@ public class OfflineDataUploader : MonoBehaviour
         for (int i = 0; i < filesToUpload.Count; i++)
         {
             string fileName = Path.GetFileName(filesToUpload[i]);
-            Debug.Log($"{i + 1}. {fileName}");
+            string fileType = "Unknown";
+
+            if (fileName.EndsWith("prize.txt")) fileType = "PRIZE";
+            else if (fileName.EndsWith(".txt")) fileType = "METRICS";
+            else if (fileName.EndsWith(".mp4") || fileName.EndsWith(".mov") || fileName.EndsWith(".avi")) fileType = "VIDEO";
+
+            Debug.Log($"{i + 1}. [{fileType}] {fileName}");
         }
     }
 
@@ -221,9 +247,9 @@ public class OfflineDataUploader : MonoBehaviour
             // This is a metrics file - send as JSON
             yield return StartCoroutine(UploadMetricsFile(filePath));
         }
-        else if (fileExtension == ".mp4")
+        else if (fileExtension == ".mp4" || fileExtension == ".mov" || fileExtension == ".avi")
         {
-            // This is a video file - use VideoUpload component
+            // This is a video file - use direct upload
             yield return StartCoroutine(UploadVideoFile(filePath));
         }
         else
@@ -263,10 +289,7 @@ public class OfflineDataUploader : MonoBehaviour
         }
 
         // Usar la URL completa directamente
-        string uploadUrl2 = "https://whitelabelvendingmachine.com/api/v1/games/machineauth?mode=offline";
         string uploadUrl = URLdirectory.serverUrl + URLdirectory.rewardUrl + "?mode=offline";
-        Debug.Log("ÑÑÑÑÑÑÑÑÑÑÑ " + uploadUrl);
-        Debug.Log("ÑÑÑÑÑÑÑÑÑÑÑ2 " + uploadUrl2);
         // Print CURL command for debugging
         PrintPrizeCurlCommand(uploadUrl, jsonData);
 
@@ -395,10 +418,7 @@ public class OfflineDataUploader : MonoBehaviour
         }
 
         // Usar la URL completa directamente
-        string uploadUrl2 = "https://whitelabelvendingmachine.com/api/v1/analytics/?mode=offline";
         string uploadUrl = URLdirectory.serverUrl + URLdirectory.sendAnalitics + "?mode=offline";
-        Debug.Log("ÑÑÑÑÑÑÑÑÑÑÑ " + uploadUrl);
-        Debug.Log("ÑÑÑÑÑÑÑÑÑÑÑ2 " + uploadUrl2);
         // Print CURL command for debugging
         PrintMetricsCurlCommand(uploadUrl, jsonData);
 
@@ -563,10 +583,7 @@ public class OfflineDataUploader : MonoBehaviour
         string responseText = "";
 
         // Usar la URL completa directamente para video upload
-        string uploadUrl2 = "https://whitelabelvendingmachine.com/api/v1/assets/machine_auth/upload";
         string uploadUrl = URLdirectory.serverUrl + URLdirectory.videoUploadUrl;
-        Debug.Log("ÑÑÑÑÑÑÑÑÑÑÑ " + uploadUrl);
-        Debug.Log("ÑÑÑÑÑÑÑÑÑÑÑ2 " + uploadUrl2);
 
         Debug.Log($"Sending video file to: {uploadUrl}");
 
@@ -600,7 +617,7 @@ public class OfflineDataUploader : MonoBehaviour
             Debug.Log($"Unity manejará automáticamente el Content-Type para multipart/form-data");
 
             // Configurar timeout más largo para videos
-            webRequest.timeout = 120; // 2 minutos para videos grandes
+            webRequest.timeout = 600; // 2 minutos para videos grandes
 
             // Enviar la request
             yield return webRequest.SendWebRequest();
@@ -632,12 +649,12 @@ public class OfflineDataUploader : MonoBehaviour
         // Manejar la respuesta del video
         if (uploadSuccess)
         {
-            Debug.Log($"✅ SUCCESS: Video uploaded: {fileName}");
+            Debug.Log($"SUCCESS: Video uploaded: {fileName}");
             SafeDeleteVideoAndFolder(filePath);
         }
         else
         {
-            Debug.LogWarning($"❌ FAILED: Video upload: {fileName}");
+            Debug.LogWarning($"FAILED: Video upload: {fileName}");
         }
 
         Debug.Log($"=== VIDEO UPLOAD FINISHED ===");
@@ -815,19 +832,31 @@ public class OfflineDataUploader : MonoBehaviour
         string persistentDataPath = Application.persistentDataPath;
         if (!Directory.Exists(persistentDataPath)) return false;
 
-        string[] txtFiles = Directory.GetFiles(persistentDataPath, "*.txt");
+        // Check for any prize or metrics files
+        string[] prizeFiles = Directory.GetFiles(persistentDataPath, "*prize.txt")
+            .Where(f => !Path.GetFileNameWithoutExtension(f).Equals("Playerprize") &&
+                       !Path.GetFileNameWithoutExtension(f).Equals("Player-prevprize"))
+            .ToArray();
 
-        // Filter out system files
-        foreach (string txtFile in txtFiles)
+        string[] metricsFiles = Directory.GetFiles(persistentDataPath, "*.txt")
+            .Where(f => !f.EndsWith("prize.txt") &&
+                       !Path.GetFileNameWithoutExtension(f).Equals("Player") &&
+                       !Path.GetFileNameWithoutExtension(f).Equals("Player-prev"))
+            .ToArray();
+
+        // Check for video directories with 6-character names (excluding AuxResp)
+        string[] allDirectories = Directory.GetDirectories(persistentDataPath);
+        bool hasVideos = allDirectories.Any(d =>
         {
-            string fileName = Path.GetFileNameWithoutExtension(txtFile);
-            if (fileName != "Player" && fileName != "Player-prev")
-            {
-                return true;
-            }
-        }
+            string dirName = Path.GetFileName(d);
+            return dirName != "Player" &&
+                   dirName != "Player-prev" &&
+                   dirName != "AuxResp" &&
+                   dirName.Length == 6 &&
+                   Directory.GetFiles(d, "*.mp4").Length > 0;
+        });
 
-        return false;
+        return prizeFiles.Length > 0 || metricsFiles.Length > 0 || hasVideos;
     }
 
     /// <summary>
@@ -851,14 +880,39 @@ public class OfflineDataUploader : MonoBehaviour
 
         if (!Directory.Exists(persistentDataPath)) return fileNames;
 
-        string[] txtFiles = Directory.GetFiles(persistentDataPath, "*.txt");
+        // Include prize files
+        string[] prizeFiles = Directory.GetFiles(persistentDataPath, "*prize.txt");
+        foreach (string prizeFile in prizeFiles)
+        {
+            string fileName = Path.GetFileNameWithoutExtension(prizeFile);
+            if (!fileName.Equals("Playerprize") && !fileName.Equals("Player-prevprize"))
+            {
+                fileNames.Add(fileName);
+            }
+        }
 
+        // Include metrics files
+        string[] txtFiles = Directory.GetFiles(persistentDataPath, "*.txt");
         foreach (string txtFile in txtFiles)
         {
             string fileName = Path.GetFileNameWithoutExtension(txtFile);
-            if (fileName != "Player" && fileName != "Player-prev")
+            if (fileName != "Player" && fileName != "Player-prev" && !fileName.EndsWith("prize"))
             {
                 fileNames.Add(fileName);
+            }
+        }
+
+        // Include video directories with 6-character names (excluding AuxResp)
+        string[] allDirectories = Directory.GetDirectories(persistentDataPath);
+        foreach (string directory in allDirectories)
+        {
+            string dirName = Path.GetFileName(directory);
+            if (dirName != "Player" &&
+                dirName != "Player-prev" &&
+                dirName != "AuxResp" &&
+                dirName.Length == 6)
+            {
+                fileNames.Add(dirName);
             }
         }
 
