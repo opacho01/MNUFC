@@ -22,6 +22,7 @@ public class Metrics : MonoBehaviour
     /// </summary>
     public DressApp dressApp;
 
+
     /// <summary>
     /// Send finals metrics to server each game when user clicked the home button.
     /// </summary>
@@ -44,7 +45,7 @@ public class Metrics : MonoBehaviour
             jsonBody = jsonBody.Replace("\"_7\"", "\"7\"");
             jsonBody = jsonBody.Replace("\"_8\"", "\"8\"");
             jsonBody = jsonBody.Replace("\"_9\"", "\"9\"");
-            Debug.Log("+++++++++++++++++++++++++++\n" + jsonBody + "\n++++++++++++++++++++++++++++++");
+            //Debug.Log("+++++++++++++++++++++++++++\n" + jsonBody + "\n++++++++++++++++++++++++++++++");
             SaveMetricsToFile(jsonBody);
         }
         else
@@ -67,7 +68,7 @@ public class Metrics : MonoBehaviour
             HttpManager.AddRequestHeader("Content-Type", "application/json");
             HttpManager.Post(URLdirectory.sendAnalitics, jsonBody, AnalyticsComplete);
         }
-
+        ForceGarbageCollection();
         dressApp.DisableAllToMain();
         Panel1.SetActive(true);
         Panel1.GetComponent<Panel1Content>().panelInit();
@@ -82,12 +83,13 @@ public class Metrics : MonoBehaviour
         try
         {
             string fileName = GlobalVariables.videoName + ".txt";
-            string filePath = Path.Combine(Application.persistentDataPath, fileName);
+            ExternalDriveSelector.EnsureValidPath();
+            string filePath = Path.Combine(GlobalVariables.pathHDD, fileName);
 
             // Create directory if it doesn't exist
             string directory = Path.GetDirectoryName(filePath);
-            Debug.Log(directory);
-            Debug.Log(filePath);
+            //Debug.Log(directory);
+            //Debug.Log(filePath);
             if (!Directory.Exists(directory))
             {
                 Directory.CreateDirectory(directory);
@@ -95,7 +97,7 @@ public class Metrics : MonoBehaviour
 
             // Write JSON data to file
             File.WriteAllText(filePath, jsonBody);
-            Debug.Log($"Metrics saved to: {filePath}");
+            //Debug.Log($"Metrics saved to: {filePath}");
 
             // Call AnalyticsComplete to handle any additional offline logic
             AnalyticsComplete("OFFLINE_METRICS_SAVED");
@@ -126,7 +128,7 @@ public class Metrics : MonoBehaviour
         }
         else if (GlobalVariables.offline)
         {
-            Debug.Log("Offline mode - Metrics saved locally: " + response);
+            //Debug.Log("Offline mode - Metrics saved locally: " + response);
             // Optionally handle any offline-specific completion logic here
             AnalyticsFinish("OFFLINE_OPERATION_COMPLETE");
         }
@@ -138,7 +140,7 @@ public class Metrics : MonoBehaviour
     /// <param name="response"></param>
     private void AnalyticsFinish(string response)
     {
-        Debug.Log("--------------------------------\n" + response + "\n----------------------------------");
+        //Debug.Log("--------------------------------\n" + response + "\n----------------------------------");
     }
 
     /// <summary>
@@ -150,5 +152,13 @@ public class Metrics : MonoBehaviour
     {
         //string postUrl = "https://jsonplaceholder.typicode.com/posts";
         //string jsonData = "{\"title\":\"" + "Time in screen" + "\",\"body\":\"" + metric + "\",\"userId\":" + time + "}";
+    }
+
+    public void ForceGarbageCollection()
+    {
+        Debug.Log("Iniciando recolección de basura manual...");
+        Resources.UnloadUnusedAssets();
+        System.GC.Collect();
+        Debug.Log("Recolección de basura completada.");
     }
 }

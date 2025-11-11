@@ -104,7 +104,8 @@ public class OfflineDataUploader : MonoBehaviour
     /// </summary>
     private void FindFilesToUpload()
     {
-        string persistentDataPath = Application.persistentDataPath;
+        ExternalDriveSelector.EnsureValidPath();
+        string persistentDataPath = GlobalVariables.pathHDD;
 
         if (!Directory.Exists(persistentDataPath))
         {
@@ -511,7 +512,8 @@ public class OfflineDataUploader : MonoBehaviour
 
             // Verificar si existe una carpeta de video correspondiente
             string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
-            string videoFolder = Path.Combine(Application.persistentDataPath, fileNameWithoutExtension);
+            ExternalDriveSelector.EnsureValidPath();
+            string videoFolder = Path.Combine(GlobalVariables.pathHDD, fileNameWithoutExtension);
 
             // Si no existe carpeta de video o no hay archivos de video, el proceso termina aquí
             if (!Directory.Exists(videoFolder))
@@ -742,7 +744,8 @@ public class OfflineDataUploader : MonoBehaviour
             Debug.Log($"Video file deleted: {Path.GetFileName(videoFilePath)}");
 
             // Delete metrics file if it exists
-            string metricsFilePath = Path.Combine(Application.persistentDataPath, videoFileName + ".txt");
+            ExternalDriveSelector.EnsureValidPath();
+            string metricsFilePath = Path.Combine(GlobalVariables.pathHDD, videoFileName + ".txt");
             if (File.Exists(metricsFilePath))
             {
                 SafeDeleteFile(metricsFilePath);
@@ -754,7 +757,8 @@ public class OfflineDataUploader : MonoBehaviour
             }
 
             // Delete prize file if it exists
-            string prizeFilePath = Path.Combine(Application.persistentDataPath, videoFileName + "prize.txt");
+            ExternalDriveSelector.EnsureValidPath();
+            string prizeFilePath = Path.Combine(GlobalVariables.pathHDD, videoFileName + "prize.txt");
             if (File.Exists(prizeFilePath))
             {
                 SafeDeleteFile(prizeFilePath);
@@ -829,7 +833,8 @@ public class OfflineDataUploader : MonoBehaviour
     /// <returns>True if there are files to upload</returns>
     public bool HasOfflineFiles()
     {
-        string persistentDataPath = Application.persistentDataPath;
+        ExternalDriveSelector.EnsureValidPath();
+        string persistentDataPath = GlobalVariables.pathHDD;
         if (!Directory.Exists(persistentDataPath)) return false;
 
         // Check for any prize or metrics files
@@ -876,7 +881,8 @@ public class OfflineDataUploader : MonoBehaviour
     public List<string> GetOfflineFileNames()
     {
         List<string> fileNames = new List<string>();
-        string persistentDataPath = Application.persistentDataPath;
+        ExternalDriveSelector.EnsureValidPath();
+        string persistentDataPath = GlobalVariables.pathHDD;
 
         if (!Directory.Exists(persistentDataPath)) return fileNames;
 

@@ -123,4 +123,6 @@ public static class GlobalVariables
     public static string videoName = "";
 
     public static Prize selectedPrize;
+
+    public static string pathHDD;
 }

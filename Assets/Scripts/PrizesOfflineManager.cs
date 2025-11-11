@@ -21,6 +21,7 @@ public class PrizeManager : MonoBehaviour
     [Header("Storage Keys")]
     public string closeStorageKey = "PrizeCloseData";
     public string saveStorageKey = "PrizeSaveData";
+    public string loadStorageKey = "PrizeLoadData"; // Separate state for Save/Load
     public string offlinePrizesKey = "OfflinePrizes";
 
     private List<PrizeObjectUI> prizeUIs = new List<PrizeObjectUI>();
@@ -57,7 +58,7 @@ public class PrizeManager : MonoBehaviour
         InitializeOfflinePrizes();
         InitializePrizeObjects();
         SetupButtonListeners();
-        LoadCloseData();
+        LoadCloseData(); // Load original state when entering
     }
 
     /// <summary>
@@ -318,39 +319,6 @@ public class PrizeManager : MonoBehaviour
                 prizeNames.AddRange(prizesArray.Where(prize => !string.IsNullOrEmpty(prize)));
             }
         }
-
-        Debug.Log($"Loaded {prizeNames.Count} prize names");
-    }
-
-    /// <summary>
-    /// Handles Close button click - validates and saves data
-    /// </summary>
-    private void OnCloseButtonClicked()
-    {
-        if (ValidateAllPrizeData())
-        {
-            SaveCloseData();
-            panelPrizesSettings.SetActive(false);
-            Debug.Log("Close data saved successfully");
-        }
-    }
-
-    /// <summary>
-    /// Handles Save button click - saves current state
-    /// </summary>
-    private void OnSaveButtonClicked()
-    {
-        SaveCurrentState();
-        Debug.Log("Current state saved successfully");
-    }
-
-    /// <summary>
-    /// Handles Load button click - loads saved state
-    /// </summary>
-    private void OnLoadButtonClicked()
-    {
-        LoadSavedState();
-        Debug.Log("Saved state loaded successfully");
     }
 
     private string showError = "";
@@ -359,62 +327,95 @@ public class PrizeManager : MonoBehaviour
     public GameObject panelPrizesSettings;
 
     /// <summary>
-    /// Validates all prize objects for required data
+    /// Handles Close button click - allows closing even with empty elements
     /// </summary>
-    /// <returns>True if all data is valid</returns>
+    private void OnCloseButtonClicked()
+    {
+        // Allow closing even with incomplete data
+        SaveCloseData();
+        if (panelPrizesSettings != null)
+        {
+            panelPrizesSettings.SetActive(false);
+        }
+        Debug.Log("Close data saved successfully (elements can be empty)");
+    }
+
+    /// <summary>
+    /// Handles Save button click - saves current state to separate state
+    /// </summary>
+    private void OnSaveButtonClicked()
+    {
+        SaveToLoadState();
+        Debug.Log("Current state saved to Load storage");
+    }
+
+    /// <summary>
+    /// Handles Load button click - loads saved state from separate state
+    /// </summary>
+    private void OnLoadButtonClicked()
+    {
+        LoadFromLoadState();
+        Debug.Log("Loaded state from Load storage");
+    }
+
+    /// <summary>
+    /// Validates all prize objects for required data (allows empty elements)
+    /// </summary>
+    /// <returns>True if all data is valid or empty</returns>
     public bool ValidateAllPrizeData()
     {
         bool allValid = true;
         showError = "";
+
         foreach (var prizeUI in prizeUIs)
         {
             if (!ValidatePrizeObject(prizeUI))
             {
                 allValid = false;
-                showError += "Missing data in object with Slot ID: " + prizeUI.slotID + "\n";
+                showError += "Incomplete data in object with Slot ID: " + prizeUI.slotID + "\n";
             }
         }
 
         if (!allValid)
         {
-            Debug.LogError("Please complete all required fields in all prize objects");
-            TextErrorPrizes.text = showError;
-            panelErrorPrizes.SetActive(true);
-        } else
-        {
-            
+            Debug.LogWarning("Some prize objects have incomplete data, but closing is allowed");
+            // Don't show error - allow closing anyway
         }
 
-        return allValid;
+        return true; // Always allow closing
     }
 
     /// <summary>
-    /// Validates individual prize object data
+    /// Validates individual prize object data (allows empty elements)
     /// </summary>
     /// <param name="prizeUI">Prize object to validate</param>
-    /// <returns>True if data is valid</returns>
+    /// <returns>True if data is valid or empty</returns>
     private bool ValidatePrizeObject(PrizeObjectUI prizeUI)
     {
-        // Check nameToShow dropdown has selection
-        if (prizeUI.nameToShowDropdown == null || prizeUI.nameToShowDropdown.value == 0)
-            return false;
+        // Allow completely empty elements
+        bool isEmpty = (prizeUI.nameToShowDropdown == null || prizeUI.nameToShowDropdown.value == 0) &&
+                      (prizeUI.probabilityInput == null || string.IsNullOrEmpty(prizeUI.probabilityInput.text)) &&
+                      (prizeUI.quantityDropdown == null || prizeUI.quantityDropdown.value == 0);
 
-        // Check probability input has valid value
-        if (prizeUI.probabilityInput == null ||
-            string.IsNullOrEmpty(prizeUI.probabilityInput.text) ||
-            !int.TryParse(prizeUI.probabilityInput.text, out int prob) ||
-            prob < 0)
-            return false;
+        if (isEmpty)
+        {
+            return true; // Empty element is valid
+        }
 
-        // Check quantity dropdown has selection
-        if (prizeUI.quantityDropdown == null || prizeUI.quantityDropdown.value < 0)
-            return false;
+        // If not empty, validate complete data
+        bool hasName = prizeUI.nameToShowDropdown != null && prizeUI.nameToShowDropdown.value > 0;
+        bool hasProbability = prizeUI.probabilityInput != null &&
+                             !string.IsNullOrEmpty(prizeUI.probabilityInput.text) &&
+                             int.TryParse(prizeUI.probabilityInput.text, out int prob) &&
+                             prob >= 0;
+        bool hasQuantity = prizeUI.quantityDropdown != null && prizeUI.quantityDropdown.value >= 0;
 
-        return true;
+        // To be valid, must have all fields or none
+        return (hasName && hasProbability && hasQuantity) || isEmpty;
     }
 
     /// <summary>
-    /// Saves data for Close button functionality
+    /// Saves data for Close button functionality (original state)
     /// </summary>
     private void SaveCloseData()
     {
@@ -432,9 +433,9 @@ public class PrizeManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Saves current state for Save button functionality
+    /// Saves current state to separate state (Save/Load)
     /// </summary>
-    private void SaveCurrentState()
+    private void SaveToLoadState()
     {
         PrizeCollection collection = new PrizeCollection();
 
@@ -445,17 +446,37 @@ public class PrizeManager : MonoBehaviour
         }
 
         string jsonData = JsonUtility.ToJson(collection);
-        PlayerPrefs.SetString(saveStorageKey, jsonData);
+        PlayerPrefs.SetString(loadStorageKey, jsonData);
         PlayerPrefs.Save();
     }
 
     /// <summary>
-    /// Creates Prize from UI components
+    /// Creates Prize from UI components (handles empty elements)
     /// </summary>
     /// <param name="prizeUI">UI component reference</param>
     /// <returns>Populated Prize object</returns>
     private Prize CreatePrizeFromUI(PrizeObjectUI prizeUI)
     {
+        // Determine if it's an empty element
+        bool isEmpty = (prizeUI.nameToShowDropdown == null || prizeUI.nameToShowDropdown.value == 0) &&
+                      (prizeUI.probabilityInput == null || string.IsNullOrEmpty(prizeUI.probabilityInput.text)) &&
+                      (prizeUI.quantityDropdown == null || prizeUI.quantityDropdown.value == 0);
+
+        if (isEmpty)
+        {
+            return new Prize
+            {
+                slot_id = prizeUI.slotID,
+                name = SlotIDToName(prizeUI.slotID),
+                showName = "", // Empty
+                price = 0f,
+                rewardName = "Empty Prize",
+                probabilityWeight = 0,
+                inStock = false, // Set inStock to false for empty elements
+                quantity = 0
+            };
+        }
+
         return new Prize
         {
             slot_id = prizeUI.slotID,
@@ -470,7 +491,7 @@ public class PrizeManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Loads data for Close button functionality
+    /// Loads data for Close button functionality (original state)
     /// </summary>
     private void LoadCloseData()
     {
@@ -483,24 +504,24 @@ public class PrizeManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Loads saved state for Load button functionality
+    /// Loads saved state from separate state (Save/Load)
     /// </summary>
-    private void LoadSavedState()
+    private void LoadFromLoadState()
     {
-        if (PlayerPrefs.HasKey(saveStorageKey))
+        if (PlayerPrefs.HasKey(loadStorageKey))
         {
-            string jsonData = PlayerPrefs.GetString(saveStorageKey);
+            string jsonData = PlayerPrefs.GetString(loadStorageKey);
             PrizeCollection collection = JsonUtility.FromJson<PrizeCollection>(jsonData);
             ApplyPrizeDataToUI(collection);
         }
         else
         {
-            Debug.LogWarning("No saved state found");
+            Debug.LogWarning("No saved Load state found");
         }
     }
 
     /// <summary>
-    /// Applies prize data to UI components
+    /// Applies prize data to UI components (handles empty elements)
     /// </summary>
     /// <param name="collection">Prize data collection to apply</param>
     private void ApplyPrizeDataToUI(PrizeCollection collection)
@@ -510,34 +531,199 @@ public class PrizeManager : MonoBehaviour
             var prizeUI = prizeUIs.Find(p => p.slotID == prize.slot_id);
             if (prizeUI != null)
             {
-                // Apply nameToShow dropdown
-                if (prizeUI.nameToShowDropdown != null)
+                // If it's an empty element (inStock = false and quantity = 0), clear all fields
+                if (!prize.inStock && prize.quantity == 0 && string.IsNullOrEmpty(prize.showName))
                 {
-                    int nameIndex = prizeUI.nameToShowDropdown.options.FindIndex(option => option.text == prize.showName);
-                    prizeUI.nameToShowDropdown.value = nameIndex >= 0 ? nameIndex : 0;
-                    prizeUI.nameToShowDropdown.RefreshShownValue();
-                }
+                    // Clear nameToShow dropdown
+                    if (prizeUI.nameToShowDropdown != null)
+                    {
+                        prizeUI.nameToShowDropdown.value = 0;
+                        prizeUI.nameToShowDropdown.RefreshShownValue();
+                    }
 
-                // Apply probability input
-                if (prizeUI.probabilityInput != null)
-                {
-                    prizeUI.probabilityInput.text = prize.probabilityWeight.ToString();
-                }
+                    // Clear probability input
+                    if (prizeUI.probabilityInput != null)
+                    {
+                        prizeUI.probabilityInput.text = "";
+                    }
 
-                // Apply inStock toggle
-                if (prizeUI.inStockToggle != null)
-                {
-                    prizeUI.inStockToggle.isOn = prize.inStock;
-                }
+                    // Clear inStock toggle
+                    if (prizeUI.inStockToggle != null)
+                    {
+                        prizeUI.inStockToggle.isOn = false;
+                    }
 
-                // Apply quantity dropdown
-                if (prizeUI.quantityDropdown != null)
+                    // Clear quantity dropdown
+                    if (prizeUI.quantityDropdown != null)
+                    {
+                        prizeUI.quantityDropdown.value = 0;
+                        prizeUI.quantityDropdown.RefreshShownValue();
+                    }
+                }
+                else
                 {
-                    prizeUI.quantityDropdown.value = Mathf.Clamp(prize.quantity, 0, 10);
-                    prizeUI.quantityDropdown.RefreshShownValue();
+                    // Apply normal data
+                    if (prizeUI.nameToShowDropdown != null)
+                    {
+                        int nameIndex = prizeUI.nameToShowDropdown.options.FindIndex(option => option.text == prize.showName);
+                        prizeUI.nameToShowDropdown.value = nameIndex >= 0 ? nameIndex : 0;
+                        prizeUI.nameToShowDropdown.RefreshShownValue();
+                    }
+
+                    if (prizeUI.probabilityInput != null)
+                    {
+                        prizeUI.probabilityInput.text = prize.probabilityWeight.ToString();
+                    }
+
+                    if (prizeUI.inStockToggle != null)
+                    {
+                        prizeUI.inStockToggle.isOn = prize.inStock;
+                    }
+
+                    if (prizeUI.quantityDropdown != null)
+                    {
+                        prizeUI.quantityDropdown.value = Mathf.Clamp(prize.quantity, 0, 10);
+                        prizeUI.quantityDropdown.RefreshShownValue();
+                    }
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Gets a random prize and decrements its quantity, then saves only the original state
+    /// Prize should not be used if inStock is false or quantity is 0
+    /// </summary>
+    /// <returns>Selected Prize object or null if no available prizes</returns>
+    public Prize GetRandomPrizeAndDecrement()
+    {
+        Prize selectedPrize = GetRandomPrize();
+
+        if (selectedPrize != null && selectedPrize.inStock && selectedPrize.quantity > 0)
+        {
+            // Find the UI element and decrement quantity
+            var prizeUI = prizeUIs.Find(p => p.slotID == selectedPrize.slot_id);
+            if (prizeUI != null && prizeUI.quantityDropdown != null)
+            {
+                int newQuantity = prizeUI.quantityDropdown.value - 1;
+                if (newQuantity >= 0)
+                {
+                    prizeUI.quantityDropdown.value = newQuantity;
+                    prizeUI.quantityDropdown.RefreshShownValue();
+
+                    // Update the prize quantity
+                    selectedPrize.quantity = newQuantity;
+
+                    // Save ONLY to the original state (Close)
+                    SaveCloseData();
+
+                    Debug.Log($"Decremented quantity for {selectedPrize.showName}. New quantity: {newQuantity}");
+                }
+            }
+        }
+
+        return selectedPrize;
+    }
+
+    /// <summary>
+    /// Gets a random prize based on probability weights and availability
+    /// Prize should not be used if inStock is false or quantity is 0
+    /// </summary>
+    /// <returns>Selected Prize object or null if no available prizes</returns>
+    public Prize GetRandomPrize()
+    {
+        List<Prize> availablePrizes = new List<Prize>();
+        List<int> probabilities = new List<int>();
+        int totalProbability = 0;
+
+        // Collect all available prizes with inStock = true, quantity > 0 and probability > 0
+        foreach (var prizeUI in prizeUIs)
+        {
+            Prize prize = CreatePrizeFromUI(prizeUI);
+
+            // Prize should not be used if inStock is false or quantity is 0
+            if (prize.inStock && prize.quantity > 0 && prize.probabilityWeight > 0)
+            {
+                availablePrizes.Add(prize);
+                probabilities.Add(prize.probabilityWeight);
+                totalProbability += prize.probabilityWeight;
+            }
+        }
+
+        // Check if there are any available prizes
+        if (availablePrizes.Count == 0)
+        {
+            Debug.LogWarning("No available prizes with inStock = true, quantity > 0 and probability > 0");
+            return null;
+        }
+
+        // If only one prize available, return it
+        if (availablePrizes.Count == 1)
+        {
+            Debug.Log($"Only one prize available: {availablePrizes[0].showName}");
+            return availablePrizes[0];
+        }
+
+        // Generate random number based on total probability
+        int randomValue = Random.Range(0, totalProbability);
+        int cumulativeProbability = 0;
+
+        // Select prize based on probability weights
+        for (int i = 0; i < availablePrizes.Count; i++)
+        {
+            cumulativeProbability += probabilities[i];
+            if (randomValue < cumulativeProbability)
+            {
+                Debug.Log($"Selected prize: {availablePrizes[i].showName} with probability {probabilities[i]}/{totalProbability}");
+                return availablePrizes[i];
+            }
+        }
+
+        // Fallback - return the last prize (should not reach here)
+        Debug.LogWarning("Probability selection fallback - returning last prize");
+        return availablePrizes[availablePrizes.Count - 1];
+    }
+
+    /// <summary>
+    /// Gets all available prizes (inStock = true and quantity > 0)
+    /// </summary>
+    /// <returns>List of available prizes</returns>
+    public List<Prize> GetAvailablePrizes()
+    {
+        List<Prize> availablePrizes = new List<Prize>();
+
+        foreach (var prizeUI in prizeUIs)
+        {
+            Prize prize = CreatePrizeFromUI(prizeUI);
+
+            // Prize should not be used if inStock is false or quantity is 0
+            if (prize.inStock && prize.quantity > 0)
+            {
+                availablePrizes.Add(prize);
+            }
+        }
+
+        return availablePrizes;
+    }
+
+    /// <summary>
+    /// Checks if there are any available prizes (inStock = true and quantity > 0)
+    /// </summary>
+    /// <returns>True if there are available prizes</returns>
+    public bool HasAvailablePrizes()
+    {
+        foreach (var prizeUI in prizeUIs)
+        {
+            Prize prize = CreatePrizeFromUI(prizeUI);
+
+            // Prize should not be used if inStock is false or quantity is 0
+            if (prize.inStock && prize.quantity > 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -590,42 +776,8 @@ public class PrizeManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Gets a random prize and decrements its quantity, then saves the state
-    /// </summary>
-    /// <returns>Selected Prize object or null if no available prizes</returns>
-    public Prize GetRandomPrizeAndDecrement()
-    {
-        Prize selectedPrize = GetRandomPrize();
-
-        if (selectedPrize != null)
-        {
-            // Find the UI element and decrement quantity
-            var prizeUI = prizeUIs.Find(p => p.slotID == selectedPrize.slot_id);
-            if (prizeUI != null && prizeUI.quantityDropdown != null)
-            {
-                int newQuantity = prizeUI.quantityDropdown.value - 1;
-                if (newQuantity >= 0)
-                {
-                    prizeUI.quantityDropdown.value = newQuantity;
-                    prizeUI.quantityDropdown.RefreshShownValue();
-
-                    // Update the prize quantity
-                    selectedPrize.quantity = newQuantity;
-
-                    // Save the updated state to both Close and Save storage
-                    SaveCloseData();
-                    SaveCurrentState();
-
-                    Debug.Log($"Decremented quantity for {selectedPrize.showName}. New quantity: {newQuantity}");
-                }
-            }
-        }
-
-        return selectedPrize;
-    }
-
-    /// <summary>
     /// Decrements the quantity of a specific prize by slot ID and saves the state
+    /// Prize should not be used if inStock is false or quantity is 0
     /// </summary>
     /// <param name="slotID">Slot ID of the prize to decrement</param>
     /// <returns>True if successful, false if prize not found or quantity already zero</returns>
@@ -642,7 +794,7 @@ public class PrizeManager : MonoBehaviour
 
                 // Save the updated state to both Close and Save storage
                 SaveCloseData();
-                SaveCurrentState();
+                SaveToLoadState();
 
                 Debug.Log($"Decremented quantity for prize {slotID}. New quantity: {newQuantity}");
                 return true;
@@ -677,7 +829,7 @@ public class PrizeManager : MonoBehaviour
 
             // Save the updated state to both Close and Save storage
             SaveCloseData();
-            SaveCurrentState();
+            SaveToLoadState();
 
             Debug.Log($"Updated quantity for prize {slotID} to {newQuantity}");
             return true;
@@ -702,7 +854,7 @@ public class PrizeManager : MonoBehaviour
 
             // Save the updated state to both Close and Save storage
             SaveCloseData();
-            SaveCurrentState();
+            SaveToLoadState();
 
             Debug.Log($"Updated stock status for prize {slotID} to {inStock}");
             return true;
@@ -718,86 +870,8 @@ public class PrizeManager : MonoBehaviour
     public void SaveCurrentPrizeState()
     {
         SaveCloseData();
-        SaveCurrentState();
+        SaveToLoadState();
         Debug.Log("Prize state saved successfully");
-    }
-
-    /// <summary>
-    /// Gets a random prize based on probability weights and availability
-    /// </summary>
-    /// <returns>Selected Prize object or null if no available prizes</returns>
-    public Prize GetRandomPrize()
-    {
-        List<Prize> availablePrizes = new List<Prize>();
-        List<int> probabilities = new List<int>();
-        int totalProbability = 0;
-
-        // Collect all available prizes with quantity > 0 and inStock = true
-        foreach (var prizeUI in prizeUIs)
-        {
-            Prize prize = CreatePrizeFromUI(prizeUI);
-
-            if (prize.inStock && prize.quantity > 0 && prize.probabilityWeight > 0)
-            {
-                availablePrizes.Add(prize);
-                probabilities.Add(prize.probabilityWeight);
-                totalProbability += prize.probabilityWeight;
-            }
-        }
-
-        // Check if there are any available prizes
-        if (availablePrizes.Count == 0)
-        {
-            Debug.LogWarning("No available prizes with quantity > 0 and inStock = true");
-            return null;
-        }
-
-        // If only one prize available, return it
-        if (availablePrizes.Count == 1)
-        {
-            Debug.Log($"Only one prize available: {availablePrizes[0].showName}");
-            return availablePrizes[0];
-        }
-
-        // Generate random number based on total probability
-        int randomValue = Random.Range(0, totalProbability);
-        int cumulativeProbability = 0;
-
-        // Select prize based on probability weights
-        for (int i = 0; i < availablePrizes.Count; i++)
-        {
-            cumulativeProbability += probabilities[i];
-            if (randomValue < cumulativeProbability)
-            {
-                Debug.Log($"Selected prize: {availablePrizes[i].showName} with probability {probabilities[i]}/{totalProbability}");
-                return availablePrizes[i];
-            }
-        }
-
-        // Fallback - return the last prize (should not reach here)
-        Debug.LogWarning("Probability selection fallback - returning last prize");
-        return availablePrizes[availablePrizes.Count - 1];
-    }
-
-    /// <summary>
-    /// Gets all available prizes with quantity > 0 and inStock = true
-    /// </summary>
-    /// <returns>List of available prizes</returns>
-    public List<Prize> GetAvailablePrizes()
-    {
-        List<Prize> availablePrizes = new List<Prize>();
-
-        foreach (var prizeUI in prizeUIs)
-        {
-            Prize prize = CreatePrizeFromUI(prizeUI);
-
-            if (prize.inStock && prize.quantity > 0)
-            {
-                availablePrizes.Add(prize);
-            }
-        }
-
-        return availablePrizes;
     }
 
     /// <summary>
@@ -812,6 +886,7 @@ public class PrizeManager : MonoBehaviour
         {
             Prize prize = CreatePrizeFromUI(prizeUI);
 
+            // Only count prizes that are in stock and have quantity > 0
             if (prize.inStock && prize.quantity > 0)
             {
                 totalProbability += prize.probabilityWeight;
@@ -819,24 +894,5 @@ public class PrizeManager : MonoBehaviour
         }
 
         return totalProbability;
-    }
-
-    /// <summary>
-    /// Checks if there are any available prizes
-    /// </summary>
-    /// <returns>True if there are available prizes</returns>
-    public bool HasAvailablePrizes()
-    {
-        foreach (var prizeUI in prizeUIs)
-        {
-            Prize prize = CreatePrizeFromUI(prizeUI);
-
-            if (prize.inStock && prize.quantity > 0)
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

@@ -99,7 +99,8 @@ public class WebCamRecorder : MonoBehaviour
         webCamTexture.Play();
         ffmpegPath = Path.Combine(Application.streamingAssetsPath, "ffmpeg.exe");
         string PathName = GlobalVariables.videoName;
-        outputFolderPath = Path.Combine(Application.persistentDataPath, PathName);//Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "VideoFolder");
+        ExternalDriveSelector.EnsureValidPath();
+        outputFolderPath = Path.Combine(GlobalVariables.pathHDD, PathName);//Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "VideoFolder");
         if (!Directory.Exists(outputFolderPath))
         {
             Directory.CreateDirectory(outputFolderPath);
@@ -202,7 +203,8 @@ public class WebCamRecorder : MonoBehaviour
         {
 
             string PathName = GlobalVariables.videoName;
-            outputFolderPath = Path.Combine(Application.persistentDataPath, PathName);
+            ExternalDriveSelector.EnsureValidPath();
+            outputFolderPath = Path.Combine(GlobalVariables.pathHDD, PathName);
             text = Path.Combine(outputFolderPath, path);
             UnityEngine.Debug.Log("Offline " + text);
             UnityEngine.Debug.Log(outputFolderPath);

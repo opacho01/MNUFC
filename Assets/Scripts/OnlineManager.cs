@@ -30,7 +30,7 @@ public class OnlineManager : MonoBehaviour
         {
             PlayerPrefs.SetInt("Offline", 1);
         }
-        Debug.Log("OnlineManager " + GlobalVariables.offline);
+        //Debug.Log("OnlineManager " + GlobalVariables.offline);
     }
 
     public void OnlineOfflineSelector()

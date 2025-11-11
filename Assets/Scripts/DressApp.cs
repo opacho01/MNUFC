@@ -88,7 +88,7 @@ public class DressApp : MonoBehaviour
         {
             // Step 1: Fill loading panel
             currentStep++;
-            Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Loading Panel) - {(currentStep * 100f / totalSteps):F1}%");
+            //Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Loading Panel) - {(currentStep * 100f / totalSteps):F1}%");
             try
             {
                 panelLoading.fillPanel(allResources);
@@ -101,7 +101,7 @@ public class DressApp : MonoBehaviour
             
             // Step 2: Fill panel 1
             currentStep++;
-            Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Panel 1) - {(currentStep * 100f / totalSteps):F1}%");
+            //Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Panel 1) - {(currentStep * 100f / totalSteps):F1}%");
             try
             {
                 panel1.fillPanel(allResources);
@@ -114,7 +114,7 @@ public class DressApp : MonoBehaviour
             
             // Step 3: Activate panel 1
             currentStep++;
-            Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Activating Panel 1) - {(currentStep * 100f / totalSteps):F1}%");
+            //Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Activating Panel 1) - {(currentStep * 100f / totalSteps):F1}%");
             try
             {
                 panel1.gameObject.SetActive(true);
@@ -127,7 +127,7 @@ public class DressApp : MonoBehaviour
             
             // Step 4: Fill panel 2
             currentStep++;
-            Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Panel 2) - {(currentStep * 100f / totalSteps):F1}%");
+            //Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Panel 2) - {(currentStep * 100f / totalSteps):F1}%");
             try
             {
                 panel2.fillPanel(allResources);
@@ -140,7 +140,7 @@ public class DressApp : MonoBehaviour
             
             // Step 5: Fill panel 3
             currentStep++;
-            Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Panel 3) - {(currentStep * 100f / totalSteps):F1}%");
+            //Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Panel 3) - {(currentStep * 100f / totalSteps):F1}%");
             try
             {
                 panel3.fillPanel(allResources);
@@ -153,7 +153,7 @@ public class DressApp : MonoBehaviour
             
             // Step 6: Fill panel 4
             currentStep++;
-            Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Panel 4) - {(currentStep * 100f / totalSteps):F1}%");
+            //Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Panel 4) - {(currentStep * 100f / totalSteps):F1}%");
             try
             {
                 panel4.fillPanel(allResources);
@@ -166,7 +166,7 @@ public class DressApp : MonoBehaviour
             
             // Step 7: Fill panel 5
             currentStep++;
-            Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Panel 5) - {(currentStep * 100f / totalSteps):F1}%");
+            //Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Panel 5) - {(currentStep * 100f / totalSteps):F1}%");
             try
             {
                 panel5.fillPanel(allResources);
@@ -179,7 +179,7 @@ public class DressApp : MonoBehaviour
             
             // Step 8: Fill panel 6
             currentStep++;
-            Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Panel 6) - {(currentStep * 100f / totalSteps):F1}%");
+            //Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Panel 6) - {(currentStep * 100f / totalSteps):F1}%");
             try
             {
                 panel6.fillPanel(allResources);
@@ -192,7 +192,7 @@ public class DressApp : MonoBehaviour
             
             // Step 9: Fill panel 7
             currentStep++;
-            Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Panel 7) - {(currentStep * 100f / totalSteps):F1}%");
+            //Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Panel 7) - {(currentStep * 100f / totalSteps):F1}%");
             try
             {
                 panel7.fillPanel(allResources);
@@ -205,7 +205,7 @@ public class DressApp : MonoBehaviour
             
             // Step 10: Fill panel 8
             currentStep++;
-            Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Panel 8) - {(currentStep * 100f / totalSteps):F1}%");
+            //Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Panel 8) - {(currentStep * 100f / totalSteps):F1}%");
             try
             {
                 panel8.fillPanel(allResources);
@@ -218,17 +218,17 @@ public class DressApp : MonoBehaviour
             
             // Step 11: Initial wait
             currentStep++;
-            Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Processing - Wait 1) - {(currentStep * 100f / totalSteps):F1}%");
+            //Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Processing - Wait 1) - {(currentStep * 100f / totalSteps):F1}%");
             //yield return new WaitForSeconds(2);
             
             // Step 12: Secondary wait
             currentStep++;
-            Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Processing - Wait 2) - {(currentStep * 100f / totalSteps):F1}%");
+            //Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Processing - Wait 2) - {(currentStep * 100f / totalSteps):F1}%");
             //yield return new WaitForSeconds(1.0f);
             
             // Step 13: Set panel1 video prepared
             currentStep++;
-            Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Panel 1 Video Ready) - {(currentStep * 100f / totalSteps):F1}%");
+            //Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Panel 1 Video Ready) - {(currentStep * 100f / totalSteps):F1}%");
             try
             {
                 panel1.videoPrepared = true;
@@ -241,7 +241,7 @@ public class DressApp : MonoBehaviour
             
             // Step 14: Set panel5 video prepared
             currentStep++;
-            Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Panel 5 Video Ready) - {(currentStep * 100f / totalSteps):F1}%");
+            //Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Panel 5 Video Ready) - {(currentStep * 100f / totalSteps):F1}%");
             try
             {
                 panel5.videoPrepared = true;
@@ -254,7 +254,7 @@ public class DressApp : MonoBehaviour
             
             // Step 15: Set global initialization flag
             currentStep++;
-            Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Global Variables Set) - {(currentStep * 100f / totalSteps):F1}%");
+            //Debug.Log($"[DressApp] Preparing assets... Step {currentStep}/{totalSteps} (Global Variables Set) - {(currentStep * 100f / totalSteps):F1}%");
             try
             {
                 GlobalVariables.initiated2 = true;
@@ -265,7 +265,7 @@ public class DressApp : MonoBehaviour
                 Debug.LogException(e);
             }
             
-            Debug.Log("[DressApp] ✅ Asset preparation completed successfully! All panels ready.");
+            //Debug.Log("[DressApp] ✅ Asset preparation completed successfully! All panels ready.");
         }
         catch (System.Exception generalException)
         {

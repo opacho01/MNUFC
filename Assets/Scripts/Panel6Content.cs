@@ -98,7 +98,7 @@ public class Panel6Content : PanelContent
         {
             Prize selectedPrize = prizeManager.GetRandomPrizeAndDecrement();
             GlobalVariables.selectedPrize = selectedPrize;
-            if (selectedPrize != null)
+            /*if (selectedPrize != null)
             {
                 Debug.Log($"Selected prize: {selectedPrize.showName}");
                 Debug.Log($"Slot ID: {selectedPrize.slot_id}");
@@ -107,10 +107,10 @@ public class Panel6Content : PanelContent
                 Debug.Log($"Quantity: {selectedPrize.quantity}");
 
                 // Use the selected prize...
-            }
+            }*/
 
             // Print only the fields that are not commented in the JSON
-            Debug.Log("\"start_time\": \"" + GlobalVariables.metricsObj.time_start + "\",\n");
+            /*Debug.Log("\"start_time\": \"" + GlobalVariables.metricsObj.time_start + "\",\n");
             Debug.Log("\"end_time\": \"" + DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:sszzz") + "\",\n");
             Debug.Log("\"total_game_time\": " + 1 + ",\n");
             Debug.Log("\"total_screen_time\": " + 1 + ",\n");
@@ -131,7 +131,7 @@ public class Panel6Content : PanelContent
             Debug.Log("\"probabilityWeight\": " + selectedPrize.probabilityWeight + ",\n");
             Debug.Log("\"inStock\": " + selectedPrize.inStock.ToString().ToLower() + ",\n");
             Debug.Log("\"quantity\": " + selectedPrize.quantity + "},\n");
-            Debug.Log("}");
+            Debug.Log("}");*/
 
             string jsonBodyOffline =
            "{\n"
@@ -163,7 +163,7 @@ public class Panel6Content : PanelContent
            + "\"quantity\": " + selectedPrize.quantity + "}\n"
         + "}";
 
-            Debug.Log(jsonBodyOffline);
+            //Debug.Log(jsonBodyOffline);
 
             // Save JSON to text file
             SaveJsonToFile(jsonBodyOffline);
@@ -200,13 +200,14 @@ public class Panel6Content : PanelContent
         {
             // Create file name
             string fileName = GlobalVariables.videoName + "prize.txt";
-            string filePath = Path.Combine(Application.persistentDataPath, fileName);
+            ExternalDriveSelector.EnsureValidPath();
+            string filePath = Path.Combine(GlobalVariables.pathHDD, fileName);
 
             // Write JSON content to file
             File.WriteAllText(filePath, jsonContent);
 
-            Debug.Log($"File saved successfully: {filePath}");
-            Debug.Log($"Saved content: {jsonContent}");
+            //Debug.Log($"File saved successfully: {filePath}");
+            //Debug.Log($"Saved content: {jsonContent}");
         }
         catch (System.Exception e)
         {
@@ -229,7 +230,7 @@ public class Panel6Content : PanelContent
     /// <param name="response"></param>
     void HandlePostResponse(string response)
     {
-        Debug.Log(response);
+       // Debug.Log(response);
         if (!string.IsNullOrEmpty(response))
         {
             InfoPrize infoPrize = JsonUtility.FromJson<InfoPrize>(response);

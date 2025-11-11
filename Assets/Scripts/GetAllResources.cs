@@ -233,19 +233,19 @@ public class GetAllResources : MonoBehaviour
     void Start()
     {
         initError.gameObject.SetActive(false);
-        Debug.Log("GetAllResources " + GlobalVariables.offline);
+        //Debug.Log("GetAllResources " + GlobalVariables.offline);
         prizeManager.InitializeComplete();
         // Verificar si hay datos guardados localmente
         if (GlobalVariables.offline)
         {
             //offline = true;
-            Debug.Log("Modo offline activado - usando datos guardados localmente");
+            //Debug.Log("Modo offline activado - usando datos guardados localmente");
             LoadOfflineMachineData();
         }
         else
         {
             //offline = false;
-            Debug.Log("Modo online - obteniendo datos del servidor");
+            //Debug.Log("Modo online - obteniendo datos del servidor");
             GetMachineData();
         }
     }
@@ -276,12 +276,12 @@ public class GetAllResources : MonoBehaviour
                 themeData = GlobalVariables.machineData.theme;
                 URLdirectory.theme_id = themeData._id;
 
-                Debug.Log("Datos de máquina cargados desde almacenamiento local");
+                //Debug.Log("Datos de máquina cargados desde almacenamiento local");
                 DownloadAssets(); // Proceder a cargar los recursos offline
             }
             else
             {
-                Debug.LogError("No se encontraron datos offline guardados");
+                //Debug.LogError("No se encontraron datos offline guardados");
                 initError.gameObject.SetActive(true);
                 initError.text = "No hay datos offline disponibles. Conéctese a internet para descargar los datos.";
             }
@@ -323,12 +323,12 @@ public class GetAllResources : MonoBehaviour
         }
         if(PlayerPrefs.GetInt("Reset") == 1)
         {
-            Debug.Log("Bajando todo el contenido");
+            //Debug.Log("Bajando todo el contenido");
             Dummys = false;
             PlayerPrefs.SetInt("Reset", 0);
         } else
         {
-            Debug.Log("Usando contenido precargado");
+            //Debug.Log("Usando contenido precargado");
         }
         string extension = "";
         HttpManager.UpdateDisplay(succesfullText, ErrorText);
