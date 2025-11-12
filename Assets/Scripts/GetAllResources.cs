@@ -232,6 +232,7 @@ public class GetAllResources : MonoBehaviour
     /// </summary>
     void Start()
     {
+        Application.targetFrameRate = 30;
         initError.gameObject.SetActive(false);
         //Debug.Log("GetAllResources " + GlobalVariables.offline);
         prizeManager.InitializeComplete();

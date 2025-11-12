@@ -5,6 +5,7 @@ using System.IO;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System; // Importante para System.GC
 
 /// <summary>
 /// Class in charge of recording the player through the webcam and saving the video on the machine.
@@ -52,6 +53,12 @@ public class WebCamRecorder : MonoBehaviour
         // Prepare the webcam
         if (WebCamTexture.devices.Length > 0)
         {
+            // Detener el existente antes de crear uno nuevo si ya existía
+            webCamTexture?.Stop();
+            // Asegurarse de liberar la memoria de la textura anterior si se descartara.
+            // En este caso se reutiliza, pero es buena práctica.
+            if (webCamTexture != null) Destroy(webCamTexture);
+
             webCamTexture = new WebCamTexture();
             rawImage.texture = webCamTexture;
         }
@@ -67,16 +74,25 @@ public class WebCamRecorder : MonoBehaviour
 
 
     /// <summary>
-    /// Stop using the webcam to avoid errors
+    /// Stop using the webcam and stop any active FFmpeg process to avoid errors when the application quits.
     /// </summary>
     void OnApplicationQuit()
     {
         // Liberar recursos al cerrar la aplicación
-        webCamTexture?.Stop();
-        StopCoroutine(RecordVideo());
-        if (webCamTexture != null)
+        QuitCam();
+
+        // **[CRÍTICO]** Si el proceso sigue vivo al cerrar, límpialo.
+        if (ffmpegProcess != null && !ffmpegProcess.HasExited)
         {
-            webCamTexture.Stop();
+            try
+            {
+                ffmpegProcess.Kill();
+                ffmpegProcess.Dispose();
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogError("Error al intentar terminar y disponer el proceso FFmpeg en Quit: " + ex.Message);
+            }
         }
     }
 
@@ -122,6 +138,14 @@ public class WebCamRecorder : MonoBehaviour
         GetComponent<VideoUpload>().filepathAux = videoFileName;
         string path = videoFileName;
         string text = Path.Combine(outputFolderPath, path);
+
+        // Si hay un proceso anterior que no fue limpiado, liberarlo
+        if (ffmpegProcess != null)
+        {
+            ffmpegProcess.Dispose();
+            ffmpegProcess = null;
+        }
+
         //Set the parameter of webcam, framerate, compression, quality and name to save.
         string arguments = $"-y -f gdigrab -framerate 30 -offset_x {offsetX} -offset_y {offsetY} -video_size {arg} " + "-i desktop -draw_mouse 0 -b:v 50000k -c:v libx264 -preset ultrafast -crf 12 -pix_fmt yuv420p -profile:v high -g 120 -tune film \"" + text + "\"";
         ffmpegProcess = new Process
@@ -137,9 +161,17 @@ public class WebCamRecorder : MonoBehaviour
                 CreateNoWindow = true
             }
         };
-        ffmpegProcess.Start();
-        ffmpegProcess.BeginOutputReadLine();
-        ffmpegProcess.BeginErrorReadLine();
+
+        try
+        {
+            ffmpegProcess.Start();
+            ffmpegProcess.BeginOutputReadLine();
+            ffmpegProcess.BeginErrorReadLine();
+        }
+        catch (Exception e)
+        {
+            UnityEngine.Debug.LogError("Error al iniciar FFmpeg: " + e.Message);
+        }
     }
 
     /// <summary>
@@ -147,23 +179,43 @@ public class WebCamRecorder : MonoBehaviour
     /// </summary>
     public void StopRecording()
     {
+        // Asegúrate de que no haya múltiples StopRecording activos si el usuario presiona algo varias veces
+        StopCoroutine(RecordVideo());
+
         panelContent.nextPanel();
         panelContent.gameObject.SetActive(false);
+
+        // Comprobación de proceso y limpieza de recursos
         if (ffmpegProcess == null || ffmpegProcess.HasExited)
         {
+            // Si el proceso ya no existe, no hay nada que limpiar de FFmpeg.
             return;
         }
-        ffmpegProcess.StandardInput.WriteLine("q");
-        ffmpegProcess.StandardInput.Close();
-        ffmpegProcess.WaitForExit();
-        if (ffmpegProcess.ExitCode == 0)
+
+        // Asegura que cerramos el flujo de entrada antes de enviar 'q'
+        try
         {
-            //GlobalVariables.videoName = Base62DateConverter.ConvertDateToBase62(timestamp);//"output_" + timestamp;
+            ffmpegProcess.StandardInput.WriteLine("q");
+            ffmpegProcess.StandardInput.Close(); // CRÍTICO: Cierra el System.IO.Stream
+            ffmpegProcess.WaitForExit(5000); // Esperar 5 segundos máximo.
+        }
+        catch (Exception ex)
+        {
+            UnityEngine.Debug.LogError("Error al intentar detener FFmpeg: " + ex.Message);
+        }
+
+
+        if (ffmpegProcess.HasExited && ffmpegProcess.ExitCode == 0)
+        {
             string path = GlobalVariables.videoName + ".mp4";
             string text = Path.Combine(outputFolderPath, path);
-            
+
+            // 1. LIMPIEZA DE C# (GARBAGE COLLECTION)
+            // Realizamos la limpieza tras una operación pesada de I/O
+            RunManualCleanupCycle();
+
             UnityEngine.Debug.Log("Recording stopped and video saved successfully at: " + text);
-            
+
             if (File.Exists(text))
             {
                 if (!Application.isEditor)
@@ -174,12 +226,13 @@ public class WebCamRecorder : MonoBehaviour
                 if (!GlobalVariables.offline)
                 {
                     GetComponent<VideoUpload>().UploadToServer(text);
-                } else
+                }
+                else
                 {
                     GetComponent<VideoUpload>().DontVideoUploaded();
                 }
                 webCamTexture?.Stop();
-                StopCoroutine(RecordVideo());
+                // OJO: La corrutina se detuvo al inicio de StopRecording, no es necesario StopCoroutine aquí.
             }
             else
             {
@@ -190,7 +243,32 @@ public class WebCamRecorder : MonoBehaviour
         {
             UnityEngine.Debug.LogError($"Recording stopped, but there was an error saving the video. Exit code: {ffmpegProcess.ExitCode}");
         }
+
+        // **[CRÍTICO]** 2. LIBERACIÓN DE RECURSOS NATIVOS DEL PROCESO
+        // Dispose del objeto Process. Esto libera todos los manejadores del SO.
+        try
+        {
+            ffmpegProcess.Dispose();
+            ffmpegProcess = null; // Marcar como nulo para evitar uso accidental
+        }
+        catch (Exception ex)
+        {
+            UnityEngine.Debug.LogError("Error al disponer el proceso FFmpeg: " + ex.Message);
+        }
     }
+
+    /// <summary>
+    /// Forzar el ciclo de limpieza de recursos gestionados y no gestionados.
+    /// </summary>
+    private void RunManualCleanupCycle()
+    {
+        // 1. Libera memoria de GPU/Unity (texturas, meshes, etc.)
+        Resources.UnloadUnusedAssets();
+
+        // 2. Fuerza la recolección de basura de C# para liberar la memoria gestionada.
+        GC.Collect();
+    }
+
 
     /// <summary>
     /// If the path exist delete the directory and video from machine.
@@ -210,7 +288,8 @@ public class WebCamRecorder : MonoBehaviour
             UnityEngine.Debug.Log(outputFolderPath);
             UnityEngine.Debug.Log(PathName);
         }
-        else {
+        else
+        {
             text = Path.Combine(outputFolderPath, path);
             UnityEngine.Debug.Log("Online " + text);
         }
@@ -258,10 +337,24 @@ public class WebCamRecorder : MonoBehaviour
     /// </summary>
     public void QuitCam()
     {
-        StopCoroutine(RecordVideo());
+        StopCoroutine("RecordVideo"); // Usar la versión de string para mayor seguridad al detener
         if (webCamTexture != null)
         {
             webCamTexture.Stop();
+        }
+
+        // También intentar limpiar el proceso si está activo
+        if (ffmpegProcess != null && !ffmpegProcess.HasExited)
+        {
+            try
+            {
+                ffmpegProcess.Kill();
+                ffmpegProcess.Dispose();
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogError("Error al intentar terminar y disponer el proceso FFmpeg en QuitCam: " + ex.Message);
+            }
         }
     }
 }
