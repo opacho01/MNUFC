@@ -353,7 +353,7 @@ public class WebCamRecorder : MonoBehaviour
             }
             catch (Exception ex)
             {
-                UnityEngine.Debug.LogError("Error al intentar terminar y disponer el proceso FFmpeg en QuitCam: " + ex.Message);
+                UnityEngine.Debug.LogError("Error: " + ex.Message);
             }
         }
     }

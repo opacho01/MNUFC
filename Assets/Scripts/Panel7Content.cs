@@ -96,7 +96,10 @@ public class Panel7Content : PanelContent
         }
         if (GlobalVariables.offline)
         {
-            prize.text = GlobalVariables.selectedPrize.showName;
+            if (GlobalVariables.ActualScreen > 5)
+            {
+                prize.text = GlobalVariables.selectedPrize.showName;
+            }
         }
     }
 

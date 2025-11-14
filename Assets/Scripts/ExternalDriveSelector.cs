@@ -10,9 +10,11 @@ public class ExternalDriveSelector : MonoBehaviour
     private string defaultPath;
     private string savedDriveKey = "SelectedDrive";
 
-    void Start()
+    void Awake()
     {
-        defaultPath = Application.persistentDataPath;
+        defaultPath = Path.Combine(Application.persistentDataPath, "MNUFC");
+        CreateDirectoryIfNotExists(defaultPath);
+
         dropdown.onValueChanged.AddListener(OnDriveSelected);
         PopulateDrives();
         LoadSavedDrive();
@@ -67,20 +69,17 @@ public class ExternalDriveSelector : MonoBehaviour
         else
         {
             string targetPath = Path.Combine(selected, "MNUFC");
-
-            if (!Directory.Exists(targetPath))
-            {
-                Directory.CreateDirectory(targetPath);
-                Debug.Log("MNUFC folder created at: " + targetPath);
-            }
-
+            CreateDirectoryIfNotExists(targetPath);
             GlobalVariables.pathHDD = targetPath;
         }
 
         PlayerPrefs.SetString(savedDriveKey, selected);
         PlayerPrefs.Save();
 
-        //Debug.Log("Assigned path: " + GlobalVariables.pathHDD);
+        Debug.Log("Assigned path: " + GlobalVariables.pathHDD);
+
+        // Reiniciar el logger con la nueva ruta
+        ErrorLogger.RestartLogger();
     }
 
     // Load saved path on startup
@@ -91,21 +90,14 @@ public class ExternalDriveSelector : MonoBehaviour
         if (saved != "default" && Directory.Exists(saved))
         {
             string targetPath = Path.Combine(saved, "MNUFC");
-
-            if (!Directory.Exists(targetPath))
-            {
-                Directory.CreateDirectory(targetPath);
-                Debug.Log("MNUFC folder created at: " + targetPath);
-            }
-
+            CreateDirectoryIfNotExists(targetPath);
             GlobalVariables.pathHDD = targetPath;
         }
         else
         {
             GlobalVariables.pathHDD = defaultPath;
         }
-
-        //Debug.Log("Loaded path on startup: " + GlobalVariables.pathHDD);
+        Debug.Log("Loaded path: " + GlobalVariables.pathHDD);
     }
 
     // Ensure the current path is valid before using it
@@ -113,8 +105,20 @@ public class ExternalDriveSelector : MonoBehaviour
     {
         if (string.IsNullOrEmpty(GlobalVariables.pathHDD) || !Directory.Exists(GlobalVariables.pathHDD))
         {
-            GlobalVariables.pathHDD = Application.persistentDataPath;
+            string fallbackPath = Path.Combine(Application.persistentDataPath, "MNUFC");
+            CreateDirectoryIfNotExists(fallbackPath);
+            GlobalVariables.pathHDD = fallbackPath;
             Debug.LogWarning("Invalid path. Default path will be used: " + GlobalVariables.pathHDD);
+        }
+    }
+
+    // Create directory if it does not exist
+    private static void CreateDirectoryIfNotExists(string path)
+    {
+        if (!Directory.Exists(path))
+        {
+            Directory.CreateDirectory(path);
+            Debug.Log("Directory created at: " + path);
         }
     }
 }

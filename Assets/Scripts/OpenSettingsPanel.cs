@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 
 /// <summary>
@@ -28,6 +29,8 @@ public class OpenSettingsPanel : MonoBehaviour
     /// Tracks the current digit position in the sequence.
     /// </summary>
     private byte actualDigitCode = 0;
+
+    public TMP_Text eventIDText;
 
     /// <summary>
     /// Validates and builds the input sequence, activating the settings panel if the correct code is entered.
@@ -93,6 +96,7 @@ public class OpenSettingsPanel : MonoBehaviour
             panelSettings.gameObject.SetActive(true);
             ClickedCode = "";
             actualDigitCode = 0;
+            eventIDText.text = "Event ID:\n" +  GlobalVariables.machineData.event_id;
         }
     }
 }

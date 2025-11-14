@@ -222,6 +222,7 @@ public class GetAllResources : MonoBehaviour
 
     public TMP_Text succesfullText;
     public TMP_Text ErrorText;
+    
 
     bool Dummys = true;
 
@@ -241,7 +242,21 @@ public class GetAllResources : MonoBehaviour
         {
             //offline = true;
             //Debug.Log("Modo offline activado - usando datos guardados localmente");
-            LoadOfflineMachineData();
+            if (PlayerPrefs.HasKey("Reset"))
+            {
+                if (PlayerPrefs.GetInt("Reset") == 1)
+                {
+                    GetMachineData();
+                } else
+                {
+                    LoadOfflineMachineData();
+                }
+            }
+            else
+            {
+                LoadOfflineMachineData();
+            }
+
         }
         else
         {
@@ -249,6 +264,7 @@ public class GetAllResources : MonoBehaviour
             //Debug.Log("Modo online - obteniendo datos del servidor");
             GetMachineData();
         }
+        
     }
 
     /// <summary>
