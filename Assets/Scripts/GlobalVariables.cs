@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -122,7 +123,27 @@ public static class GlobalVariables
     /// </summary>
     public static string videoName = "";
 
+    /// <summary>
+    /// Identifies the selected prize for use in offline mode.
+    /// </summary>
     public static Prize selectedPrize;
 
+    /// <summary>
+    /// Identifies the HDD selected to save the videos.
+    /// </summary>
     public static string pathHDD;
+
+    /// <summary>
+    /// Date of last time online.
+    /// </summary>
+    public static DateTime lastOnlineDate;
+
+    public static DateTime lastOfflineDate;
+
+    public static bool isValidTime;
+
+    public static int DaysLastonline = 7;
+
+    public const string ONLINE_DATE = "LastDate";
+    public const string OFFLINE_DATE = "LastDateOffline";
 }

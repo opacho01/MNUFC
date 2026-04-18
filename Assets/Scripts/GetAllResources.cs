@@ -282,32 +282,72 @@ public class GetAllResources : MonoBehaviour
     /// </summary>
     private void LoadOfflineMachineData()
     {
-        string machineDataPath = Path.Combine(Application.persistentDataPath, "machineData.json");
+        //////////////Aqui carga offline mode 
+        DateTime Now = DateTime.Now;
+        DateTime Saved;
 
-        try
+        if (!PlayerPrefs.HasKey(GlobalVariables.ONLINE_DATE))
         {
-            if (File.Exists(machineDataPath))
+            GlobalVariables.isValidTime = false;
+            Saved = DateTime.Parse("04/04/1990 01:01:01 p. m.");
+        } else
+        {
+            Saved = DateTime.Parse(PlayerPrefs.GetString(GlobalVariables.ONLINE_DATE, DateTime.Now.ToString()));
+        }
+        double DaysSince = (Now - Saved).TotalDays;
+        if (Now < Saved)
+        {
+            GlobalVariables.isValidTime = false;
+        } else if (DaysSince > GlobalVariables.DaysLastonline)
+        {
+            GlobalVariables.isValidTime = false;
+        }
+        else
+        {
+            GlobalVariables.isValidTime = true;
+            if(!PlayerPrefs.HasKey(GlobalVariables.OFFLINE_DATE))
             {
-                string savedData = File.ReadAllText(machineDataPath);
-                GlobalVariables.machineData = JsonUtility.FromJson<MachineData>(savedData);
-                themeData = GlobalVariables.machineData.theme;
-                URLdirectory.theme_id = themeData._id;
-
-                //Debug.Log("Datos de máquina cargados desde almacenamiento local");
-                DownloadAssets(); // Proceder a cargar los recursos offline
+                PlayerPrefs.SetString(GlobalVariables.OFFLINE_DATE, Now.ToString());
             }
-            else
+            else if(DateTime.Parse(PlayerPrefs.GetString(GlobalVariables.OFFLINE_DATE, Now.ToString())) > Now)
             {
-                //Debug.LogError("No se encontraron datos offline guardados");
-                initError.gameObject.SetActive(true);
-                initError.text = "No hay datos offline disponibles. Conéctese a internet para descargar los datos.";
+                GlobalVariables.isValidTime = false;
             }
         }
-        catch (Exception e)
+        if (GlobalVariables.isValidTime)
         {
-            Debug.LogError("Error cargando datos offline: " + e.Message);
+            string machineDataPath = Path.Combine(Application.persistentDataPath, "machineData.json");
+
+            try
+            {
+                if (File.Exists(machineDataPath))
+                {
+                    string savedData = File.ReadAllText(machineDataPath);
+                    GlobalVariables.machineData = JsonUtility.FromJson<MachineData>(savedData);
+                    themeData = GlobalVariables.machineData.theme;
+                    URLdirectory.theme_id = themeData._id;
+
+                    //Debug.Log("Datos de máquina cargados desde almacenamiento local");
+                    DownloadAssets(); // Proceder a cargar los recursos offline
+                }
+                else
+                {
+                    //Debug.LogError("No se encontraron datos offline guardados");
+                    initError.gameObject.SetActive(true);
+                    initError.text = "No hay datos offline disponibles. Conéctese a internet para descargar los datos.";
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("Error cargando datos offline: " + e.Message);
+                initError.gameObject.SetActive(true);
+                initError.text = "Error cargando datos offline: " + e.Message;
+            }
+        }
+        else
+        {
+            initError.text = "Please update your data using the online version before continuing to use the offline version.";
             initError.gameObject.SetActive(true);
-            initError.text = "Error cargando datos offline: " + e.Message;
         }
     }
 
@@ -1137,6 +1177,19 @@ public class GetAllResources : MonoBehaviour
     {
         HttpManager.AddRequestHeader("X-Machine-Key", GlobalVariables.machinesSecretKey);
         HttpManager.Get(URLdirectory.getMachineData + GlobalVariables.machineId, MachineDataComplete);
+        if (PlayerPrefs.HasKey(GlobalVariables.ONLINE_DATE))
+        {
+            string fechaStr = PlayerPrefs.GetString(GlobalVariables.ONLINE_DATE, DateTime.Now.ToString());
+            GlobalVariables.lastOnlineDate = DateTime.Parse(fechaStr);
+            if(GlobalVariables.lastOnlineDate.Date < DateTime.Now.Date)
+            {
+                PlayerPrefs.SetString(GlobalVariables.ONLINE_DATE, DateTime.Now.Date.ToString());
+            }
+        }
+        else {
+            PlayerPrefs.SetString(GlobalVariables.ONLINE_DATE, DateTime.Now.Date.ToString());
+            GlobalVariables.lastOnlineDate = DateTime.Now.Date;
+        }
     }
 
     /// <summary>
